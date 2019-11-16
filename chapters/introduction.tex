@@ -1,0 +1,98 @@
+% !TeX root = ../main.tex
+% Add the above to each chapter to make compiling the PDF easier in some editors.
+
+\chapter{Introduction}\label{chapter:introduction}
+
+\section{Connectomics}
+To understand the internal workings of brain neuroscientists have been trying to reconstruct its 'neural circuitry' also termed as a connectome, which illustrates how neurons are connected with each other. The first ever brain to be studied at this intricate detail was that of C. Elegans in the 1980's ~\cite{whiteCElegans} with serial section electron microscopy(EM) images and the neurons were traced manually. 
+
+Since then, EM methods have improved many folds, generating petabytes of data, even for a small Fruit Fly brain\textcolor{red}{cite Drosophilia paper}. So, the process of segmenting and tracing neurons have been delegated to Machine Learning(ML) algorithms, with humans pitching in only for error correction or initial training data generation. 
+
+But the neuron tracing problem is a hard nut to crack. This can be attributed to its large volume size, multiple image artifacts, numerous closely intertwined segments of vivid shapes etc. \textcolor{red}{show images illustrating problems}. Hence, the results of most algorithms are either not satisfactory or they are too slow and entail complicated postprocessing steps, limiting their scope to only inside a computer science lab far away from being used as a tool directly by neuroscientists.
+
+This work tries to build upon from existing method and approaches which researchers have been working on from deca
+
+
+\section{Connectomics Pipeline}
+
+\begin{figure}[htpb]
+  \centering
+  \newcommand{\mywidthSmall}{0.15\textwidth}
+  \newcommand{\mywidth}{0.25\textwidth}
+  \newcommand{\myheight}{0.15\textheight}
+  \newcolumntype{X}{ >{\centering\arraybackslash} m{\mywidth} }
+  \setlength\tabcolsep{0.6pt} % default value: 6pt
+  \def\arraystretch{0}%  1 is the default
+  \begin{tabular}{XXXX}
+    \includegraphics[height=\myheight, width=\mywidthSmall,keepaspectratio]{data/images/brain2.jpg}&
+	%\includegraphics[height=0.1\textheight,width=\mywidth,keepaspectratio]{data/images/emMicroscope.jpg}&
+	\includegraphics[height=\myheight,width=\mywidth]{data/images/imStack.png}&
+	\includegraphics[height=\myheight,width=\mywidth]{data/images/segStack.png}&
+	\includegraphics[height=\myheight,width=\mywidth]{data/images/seg3d.png}\\
+  \end{tabular}
+	\caption{Connectomics Pipeline.}
+	\label{fig:connectomicsPipeline}
+\end{figure}
+
+The construction of the brain connectomes starts by slicing the brain tissue as thin as possible and imaging the 2D slices using an electron microscope, typically at resolution of $3 - 10$ nanometers. After imaging, the 2D images are stacked, aligned and processed to remove noise and other artifacts.\textcolor{red}{cite alignment papers, ask Adi}. Finally, this 3D image is segmented, often by doing multiple, laborious iterations of automatic segmentation and manual error correction to obtain a connectivity graph of the neuronal processes. Figure \ref{fig:connectomicsPipeline} shows a simplified succinct connectomics pipeline, starting from the brain tissue, alignment and segmentation. After segmentation multiple other analysis can be performed, which would entail more processing.
+
+
+\section{Quirks of Connectomics Data}
+A EM image stack can contain numerous of segments which are arbitrarily and closely intertwined with each other. The membranes demarcating different cells can be thin and tough to distinguish even by trained humans. \autoref{fig:snemiDataset} shows a EM dataset \textcolor{red}{cite SNEMI} illustrating thin boundaries, closely packed nature of those neuronal segments and intertwined structure of the segments.
+
+Apart from previously mentioned properties, EM datasets especially from serial section EM usually have some more quirks like:
+\begin{itemize}
+  \item The resolution of the 3D image may not be isotropic. For serial section EM, the in-plane resolution along $X$ and $Y$ axis is usually $2$ to $5$ times higher than the $Z$ resolution which is governed by the slice thickness 
+  \item 2D image slices can have large artifacts due to physical folds or knife marks while imaging.
+  \item There can be sharp discontinuities across slices due to misalignment, missing slices etc.
+  \item The boundaries of segments can break at some points or get blurred and hard to distinguish.
+  \item The size in pixels of one volume can be in the order of $10K*10K*5K$ voxels and a single segment can encompass from one diagonal end to the other.
+\end{itemize}
+
+Thus, EM datasets are much more complex to segment compared to other natural non medical imaging datasets, and thus specialized algorithms need to be developed to tackle them.
+
+
+\begin{figure}[htpb]
+  \centering
+  \newcommand{\mywidth}{0.4\textwidth}
+  \newcommand{\myheight}{0.3\textwidth}
+  \newcommand{\mywidthLarge}{0.3\textwidth}
+  \newcommand{\myheightLarge}{0.3\textwidth}
+  \newcolumntype{X}{ >{\centering\arraybackslash} m{\mywidth} }
+  \setlength\tabcolsep{0.6pt} % default value: 6pt
+  \def\arraystretch{0}%  1 is the default
+  \begin{tabular}{XX}
+	\includegraphics[height=\myheight,width=\mywidth, keepaspectratio]{data/images/snemiGlimpse/snemiTrainSliceImages.png}\caption*{2D image slice.}&
+	\includegraphics[height=\myheight,width=\mywidth,keepaspectratio]{data/images/snemiGlimpse/snemiTrainSliceLabels.png}\caption*{2D segmentation}&
+	\includegraphics[height=\myheight,width=\mywidth,keepaspectratio]{data/images/snemiGlimpse/snemi3DSeg.png}\caption*{3D segmentation.}&
+	\includegraphics[height=\myheight,width=\mywidth,keepaspectratio]{data/images/snemiGlimpse/snemi3DSkelContext.png}\caption*{3D skeletons.}
+  \end{tabular}
+	\caption{The SNEMI Dataset. It was created as part of a Connectomics challenge to advance segmentation methods \textcolor{red}{Cite SNEMI}. The dimensions are relatively small - $100*1024*1024$ voxels with resolution of $30*6*6$ nm. }
+	\label{fig:snemiDataset}
+\end{figure}
+
+
+\section{Segmentation Methods of EM}
+
+\subsection{Boundary based Methods}
+To segment multiple 3D segments as shown in \autoref{fig:snemiDataset} one of the usual methods is to first perform semantic segmentation into two classes - foreground, which consists of all the internal pixels of segments, and background, which consists of the extracellular space. Given such a perfect semantic mask, it is trivial to obtain the instance segmentation of each cell using simple connected component analysis. One can then match segments from different slices using intersection of union scores. \textcolor{red}{cite boundary matching paper} \textcolor{blue}{ask donglai how boundary mask is segmented?}
+
+Another commonly used approach for EM 3D segmentation is to represent boundaries as affinity graphs, first introduced by \cite{Turaga2010}. In its simplest form affinity graphs are similar to boundary masks - if a voxel and its immediate next neighbor lie in same segment then a high value, usually $1$, is stored at that voxel. In this scenario the affinity graph would be of $3$ channels, one each for the immediate next neighbour along $X$, $Y$ and $Z$. Affinity graphs can be created for distant neighbors also, leading to more channels, and encoding long distance connectivity, useful for thin elongated segments, used by \cite{Kisuk2017}. After obtaining such soft partition graph, the final segmentation can be done using standard graph partitioning methods or even connected components analysis, as shown in \cite{Turaga2010} or 3D affinity based watershed transform, used by \cite{Kisuk2017} and \cite{Aleks2015WatershedClustering}.
+
+A common underlying idea in both methods is that they break down the segmentation problem into two steps. First is a local prediction step, where boundary is predicted based on local image textures and edges. Second is somewhat more global, which looks at connectivity of voxels and performs hierarchical clustering of oversegmented clusters based on shape and connectivity. The dismantling of the segmentation problem helps to tackle multi instance segmentation problem and makes it amenable for Deep Learning (DL) based methods.
+
+A major issue with these pipeline processes is that a minute leak in the boundary segmentation can lead to false merge. To somewhat avoid such false merges, the hyper-parameters of watershed clustering are tuned so as to keep the results optimally over-segmented. This is done keeping in mind that its easier to correct false splits for humans rather than fixing false merges. Nevertheless, manually agglomerating over-segmentation is still laborious and not extendable to larger volumes.
+Second issue, encountered in DL based boundary prediction methods with a $L1$ or $L2$ loss is that it cannot force the network to learn the shape of segments, a cue very frequently used by human annotators to distinguish ambiguous boundaries. This is due to the fact that we are only forcing the network to learn local boundary predictions, which a model can learn to predict based on textures only which is not enough.
+Apart from this, models are trained to reduce the mean loss over the entire dataset, this means it may learn to generate boundaries for most parts of the segment correctly, but may miss some boundaries. Even those small errors can snowball into large false merges in post-processing steps as explained earlier. \textcolor{red}{Show images for segmentation error cases?}. Recently MALIS loss was proposed to avoid this. In practice its a weighted loss which penalizes errors causing topological errors heavily compared to others.
+
+
+\subsection{Discriminative Learning?}
+
+\subsection{Error detection and Error Correction}
+It is unrealistic to obtain perfect boundary predictions directly from a single Deep Net. For perfect results an enormous corpus of training data with a verastile loss function is needed which can force the network to learn to look for all cues a human annotators employs like looking for texture, boundary, continuity across slices, and shape etc, which is unrealistic. So, recent works have explored the idea of error detection and correction of pre-segmented volumes \cite{Seung2017}, \cite{Brain2019}. In \cite{Seung2017} they .... While, the method in \cite{Brain2019} first finds false splits by computing skeletons and searching for parallel skeletons near the ends. They further compute a weighted graph with nodes comprising of segments and the edges weighted by the probability of merging the segments computed using a deep net. The merges are finally computed by partitioning the graph.
+
+\subsection{Flood Filling Netowrk}
+
+
+
+Almost all existing methods\textcolor{red}{cite segmentation papers} tackle EM segmentation first by creating a boundary map. If the  
