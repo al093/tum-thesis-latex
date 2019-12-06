@@ -44,6 +44,63 @@ In essence $\overline{\mathbf{D}}$ is a vector field with non-zero direction vec
 
 But, such defined direction field is non-smooth if the skeletons are defined on a discrete grid and learning a non-smooth field is not encouraged as Deep Nets are usually fail to generate such sharp fields. Hence, to create smoother field, skeleton points are interpolated using splines. Hence, $\Omega_s \subset \mathbb{R}^3$. \textcolor{red}{create graphic of the flux and the context and directions}
 
+\begin{figure}[htpb]
+	\newcommand{\mywidth}{0.26\textwidth}
+	\centering
+	\hspace{3mm}
+	\begin{subfigure}[b]{\mywidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/interpolation/slice_edited.png}
+		\caption{\label{fig:3dseg_slice}}
+	\end{subfigure}
+	\hspace{3mm}
+	\begin{subfigure}[b]{\mywidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/interpolation/linear_skel.png}
+		\caption{\label{fig:skel_linear}}
+	\end{subfigure}
+	\hspace{3mm}
+	\begin{subfigure}[b]{\mywidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/interpolation/spline_skel.png}
+		\caption{\label{fig:skel_spline}}
+	\end{subfigure}\\
+	\hspace{3mm}
+	\begin{subfigure}[b]{\mywidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/interpolation/seg_slice.png}
+		\caption{\label{fig:im_seg}}
+	\end{subfigure}
+	\hspace{3mm}
+	\begin{subfigure}[b]{\mywidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/interpolation/dtx_linear.png}
+		\caption{\label{fig:dtx_linear}}
+	\end{subfigure}
+	\hspace{3mm}
+	\begin{subfigure}[b]{\mywidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/interpolation/dtx_spline.png}
+		\caption{\label{fig:dtx_spline}}
+	\end{subfigure}\\
+	\hspace{\mywidth}
+	\hspace{3mm}
+	\begin{subfigure}[b]{\mywidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/interpolation/gradz_linear.png}
+		\caption{\label{fig:grad_linear}}
+	\end{subfigure}
+	\hspace{3mm}
+	\begin{subfigure}[b]{\mywidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/interpolation/gradz_spline.png}
+		\caption{\label{fig:grad_spline}}
+	\end{subfigure}
+	\caption{ \subref{fig:skel_linear} and \subref{fig:skel_spline} are resulting skeletons for linearly and spline interpolation methods respectively. \subref{fig:im_seg} is a segment slice in $X-Y$ plane sliced as shown in \subref{fig:3dseg_slice}. \subref{fig:dtx_linear} and \subref{fig:dtx_spline} are the normalized isotropic 3D distance transform from the skeleton for linearly and spline interpolated versions respectively. \subref{fig:grad_linear} and \subref{fig:grad_spline} shows the $z$ component of the gradient of \subref{fig:dtx_linear} and \subref{fig:dtx_spline} respectively. Sharp fields exist in \subref{fig:grad_linear} due to artifacts in the distance transform in \subref{fig:dtx_linear}.}
+	\label{fig:splineInterpolation}
+\end{figure}
+
+
 The advantages for encoding skeletons in such a field are:
 \begin{itemize}
 	\item Deep Net model has to learn to look for both global and local properties while predicting the field. This helps to avoid local false merges due to small membrane breaks, as seen in boundary based methods.
