@@ -15,25 +15,80 @@ This work tries to build upon from existing method and approaches which research
 
 \section{Connectomics Pipeline}
 
+%\begin{figure}[htpb]
+%  \centering
+%  \newcommand{\mywidthSmall}{0.15\textwidth}
+%  \newcommand{\mywidth}{0.20\textwidth}
+%  \newcommand{\myheight}{0.20\textwidth}
+%  \newcolumntype{X}{ >{\centering\arraybackslash} m{\mywidth} }
+%  \setlength\tabcolsep{3mm} 
+%  \def\arraystretch{0}%  1 is the default
+%  \begin{tabular}{XXX}
+%    \includegraphics[height=\myheight, width=\mywidthSmall,keepaspectratio]{data/images/brain.png}&
+%    \includegraphics[height=\myheight, width=\mywidth,keepaspectratio]{data/images/slicing.jpg}&
+%	\includegraphics[height=\myheight, width=\mywidthSmall,keepaspectratio]{data/images/slices.png}\\
+%	%\includegraphics[height=0.1\textheight,width=\mywidth,keepaspectratio]{data/images/emMicroscope.jpg}&
+%	\includegraphics[height=\myheight,width=\mywidth]{data/images/imStack.png}&
+%	\includegraphics[height=\myheight,width=\mywidth]{data/images/segStack.png}&
+%	\includegraphics[height=\myheight,width=\mywidth]{data/images/seg3d.png}\\
+%  \end{tabular}
+%	\caption{Connectomics Pipeline.}
+%	\label{fig:connectomicsPipeline}
+%\end{figure}
+
 \begin{figure}[htpb]
-  \centering
-  \newcommand{\mywidthSmall}{0.15\textwidth}
-  \newcommand{\mywidth}{0.20\textwidth}
-  \newcommand{\myheight}{0.20\textwidth}
-  \newcolumntype{X}{ >{\centering\arraybackslash} m{\mywidth} }
-  \setlength\tabcolsep{3mm} 
-  \def\arraystretch{0}%  1 is the default
-  \begin{tabular}{XXX}
-    \includegraphics[height=\myheight, width=\mywidthSmall,keepaspectratio]{data/images/brain.png}&
-    \includegraphics[height=\myheight, width=\mywidth,keepaspectratio]{data/images/slicing.jpg}&
-	\includegraphics[height=\myheight, width=\mywidthSmall,keepaspectratio]{data/images/slices.png}\\
-	%\includegraphics[height=0.1\textheight,width=\mywidth,keepaspectratio]{data/images/emMicroscope.jpg}&
-	\includegraphics[height=\myheight,width=\mywidth]{data/images/imStack.png}&
-	\includegraphics[height=\myheight,width=\mywidth]{data/images/segStack.png}&
-	\includegraphics[height=\myheight,width=\mywidth]{data/images/seg3d.png}\\
-  \end{tabular}
-	\caption{Connectomics Pipeline.}
-	\label{fig:connectomicsPipeline}
+	\newcommand{\mywidth}{0.44\textwidth}
+	\centering
+	\begin{subfigure}[b]{\mywidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/slicing/slicing_diagram.png}
+		\caption{\label{fig:slicing_diagram}}
+	\end{subfigure}
+	\hspace{3mm}
+	\begin{subfigure}[b]{\mywidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/slicing/slicing.png}
+		\caption{\label{fig:slicing}}
+	\end{subfigure}
+	\hspace{3mm}
+	\begin{subfigure}[b]{\mywidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/slicing/slicing_close.png}
+		\caption{\label{fig:slicing_close}}
+	\end{subfigure}
+	\hspace{3mm}
+	\begin{subfigure}[b]{\mywidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/slicing/wafer.png}
+		\caption{\label{fig:wafer}}
+	\end{subfigure}
+	\caption{Automated high-throughput serial sectioning setup. \subref{fig:slicing_diagram} explains a automated serial sectioning setup. \subref{fig:slicing} shows a similar setup at Lichtman Lab, Harvard. \subref{fig:slicing_close} shows thin rectangular slices being collected on the conveyor tape. \subref{fig:wafer} shows a set of slices on wafer, later to be imaged using an electron microscope. All images are courtesy of Lichtman Lab \cite{LichtmanLab} and its members.}
+	\label{fig:emSlicing}
+\end{figure}
+
+\begin{figure}[htpb]
+	\newcommand{\mywidth}{0.44\textwidth}
+	\newcommand{\mywidthlarge}{0.66\textwidth}
+	\centering
+	\begin{subfigure}[b]{\mywidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/stack/im.png}
+		\caption{\label{fig:im_stack}}
+	\end{subfigure}
+	\hspace{3mm}
+	\begin{subfigure}[b]{\mywidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/stack/seg.png}
+		\caption{\label{fig:seg_stack}}
+	\end{subfigure}
+	\hspace{3mm}
+	\begin{subfigure}[b]{\mywidthlarge}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/stack/seg_3d.png}
+		\caption{\label{fig:seg_3d}}
+	\end{subfigure}
+	\caption{3D EM image stack and segmentation. \subref{fig:im_stack} shows stacking of a few aligned 2D images along $Z$ axis. Alignment can be tough due to image artifacts and deformations during slicing. \subref{fig:seg_stack} shows the corresponding segmentation map created manually. Annotators glance across multiple slices to figure tougher segment boundaries. \subref{fig:seg_3d} shows the final manual segmentation output.}
+	\label{fig:emSegmenting}
 \end{figure}
 
 The construction of the brain connectomes starts by slicing the brain tissue as thin as possible and imaging the 2D slices using an electron microscope, typically at resolution of $3 - 10$ nanometers. After imaging, the 2D images are stacked, aligned and processed to remove noise and other artifacts.\textcolor{red}{cite alignment papers, ask Adi}. Finally, this 3D image is segmented, often by doing multiple, laborious iterations of automatic segmentation and manual error correction to obtain a connectivity graph of the neuronal processes. Figure \ref{fig:connectomicsPipeline} shows a simplified succinct connectomics pipeline, starting from the brain tissue, alignment and segmentation. After segmentation multiple other analysis can be performed, which would entail more processing.
