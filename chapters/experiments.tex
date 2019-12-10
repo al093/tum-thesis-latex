@@ -13,6 +13,32 @@ We train and test proposed skeletonization method on three datasets.
 
 \subsection{Evaluation Metric}
 Previous 2D skeletonization methods \cite{Wang2019}, \cite{Xu2019} were agnostic of skeleton instances, so, the error metrics - Precision and Recall - were based on direct pixelwise calculation of true positive (TP), false positive (FP) and false negative (FN). 
-In current proposed method skeletons for each segment are identified separately. This demands, first matching each proposed skeleton to a ground truth skeleton, similar to error metric proposed in \cite(Liang2019), which predicts road boundaries. Predicted skeletons are matched to one and only one ground truth skeleton instance based on its maximum overlap. Some predicted skeletons may not be matched to any ground truth, and vice versa. Precision and recall is then calculated, similar to \cite{Liang2019}, all predicted skeleton voxels within a threshold distance to ground truth skeleton is classified as TP, and rest as FP. FN are the voxels not in range of skeleton voxels. F1 score, harmonic mean of Precision and Recall is also reported.
+In current proposed method skeletons for each segment are identified separately. This demands, first matching each proposed skeleton to a ground truth skeleton, similar to error metric proposed in \cite{Liang2019}, which predicts road boundaries. Predicted skeletons are matched to one and only one ground truth skeleton instance based on its maximum overlap. Some predicted skeletons may not be matched to any ground truth, and vice versa. Precision and recall is then calculated, similar to \cite{Liang2019}, all predicted skeleton voxels within a threshold distance to ground truth skeleton is classified as TP, and rest as FP. FN are the voxels not in range of skeleton voxels. F1 score, harmonic mean of Precision and Recall is also reported.
 
 To assess if predicted skeletons are over-split, a connectivity score is also calculated similar to \cite{Liang2019}.
+
+
+
+\begin{table*}[!ht]                                                                                          
+	\centering
+	\begin{adjustbox}{width=\textwidth,center=\textwidth}
+	\begin{tabular}{|c|c|c|c|c|c|c|c|c|c|c|c|c|c|}                                                                      
+		\hline                                                                                                  
+		\multirow{2}{*}{Dataset} & \multirow{2}{*}{Subset} & \multicolumn{4}{c|}{Initial}  & \multicolumn{4}{c|}{After split}  & \multicolumn{4}{c|}{After match} \\                                    
+		\cline{3-14}                                                                                                  
+		&  & P & R & F & C & P & R & F & C & P & R & F & C \\                                                           
+		\hline                                                                                                  
+		\hline                                                                                                  
+				& Train & 0.64 & 0.89 & 0.74 & 0.93 & 0.66 & 0.96 & 0.78 & 0.74 &  &  &  &\\                           
+		SNEMI 	& Val 	& 0.64 & 0.64 & 0.64 & 0.88 & 0.63 & 0.82 & 0.71 & 0.73 &  &  &  & \\           
+				& Test 	&  &  &  &  &  &  &  &  &  &  &  & \\
+		\hline		 
+				& Train &  &  &  &  &  &  &  &  &  &  &  & \\                           
+		P7 		& Val 	&  &  &  &  &  &  &  &  &  &  &  & \\           
+				& Test 	&  &  &  &  &  &  &  &  &  &  &  & \\                          
+		\hline                                                                                                     
+	\end{tabular}
+	\end{adjustbox}                                                
+	\caption{Skeleton prediction scores after every step. P, R, F, C stands for Precision, Recall, F-Score and Connectivity Scores. }
+	\label{tab:dissected_scores}                                                                   
+\end{table*}
