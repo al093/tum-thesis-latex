@@ -13,7 +13,7 @@ But, it is not straight forward to construct a single Deep Net which can directl
 
 The proposed method is also inspired from this encoding, albeit for 3D skeletons and some other tweaks.
 
-Given, ground truth skeletons, a context region is defined for each skeleton, which is essentially the set of points inside a $3D$ ball of $r$ radius.
+Given, ground truth skeletons, a context region is defined for each skeleton, which are the set of points inside a $3D$ ball of $r$ radius.
 Let $\Omega \subset \mathbb{Z^3}$  be the 3D image domain consisting of points $\mathbf{p}: (x, y, z)$ and ${\Omega}_s \subset \Omega$ be the set of skeletons points manually labeled. The context set, ${\Omega}_c$ of the skeletons can be defined as
 
 \DeclarePairedDelimiter\norm\lVert\rVert
@@ -40,9 +40,27 @@ Finally a $\mathbb{R}^3$ vector field, $\overline{D}$ is obtained by taking disc
  \end{cases} 
 \end{equation}
  
-In essence $\overline{\mathbf{D}}$ is a vector field with non-zero direction vectors defined in the vicinity of skeletons, such that the vectors are pointing away from the skeletons.
+In essence $\overline{\mathbf{D}}$ is a vector field with non-zero direction vectors defined in the vicinity of skeletons, such that the vectors are pointing away from the skeletons, as shown in \autoref{fig:context_field_directions}.
 
-But, such defined direction field is non-smooth if the skeletons are defined on a discrete grid and learning a non-smooth field is not encouraged as Deep Nets are usually fail to generate such sharp fields. Hence, to create smoother field, skeleton points are interpolated using splines. Hence, $\Omega_s \subset \mathbb{R}^3$. \textcolor{red}{create graphic of the flux and the context and directions}
+\begin{figure}[htpb]
+	\newcommand{\mywidth}{0.45\textwidth}
+	\centering
+	\begin{subfigure}[b]{\mywidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/contextField/context2D.png}
+		\caption{\label{fig:context}}
+	\end{subfigure}
+	\hspace{3mm}
+	\begin{subfigure}[b]{\mywidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/contextField/directions_skel_context.png}
+		\caption{\label{fig:directions_skel_ctx}}
+	\end{subfigure}
+		\caption{\subref{fig:context} shows the context for skeletons in a 2D slice. \subref{fig:directions_skel_ctx} shows the field vectors inside the context. They all point away from the skeletons and also follow the shape of the skeleton smoothly}
+		\label{fig:context_field_directions}
+\end{figure}
+	
+But, such defined direction field is non-smooth if the skeletons are defined on a discrete grid, shown in \autoref{fig:splineInterpolation}. Learning such a non-smooth field is not encouraged as Deep Nets are usually fail to generate such sharp fields. Hence, to create smoother field, skeleton points are interpolated using splines. Hence, $\Omega_s \subset \mathbb{R}^3$.
 
 \begin{figure}[htpb]
 	\newcommand{\mywidth}{0.22\textwidth}
@@ -126,6 +144,37 @@ Though a L2 or L1 loss between target field $\mathbf{T}$ and predicted field $\m
 \begin{equation} \label{loss}
 \mathcal{L} := \alpha\mathcal{L}_{cos} + (1-\alpha)\mathcal{L}_{mse}
 \end{equation}
+
+\begin{figure}[htpb]
+	\newcommand{\mywidth}{0.3\textwidth}
+	\centering
+	\begin{subfigure}[b]{\mywidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/fieldLearning/fi_image.png}
+		\caption{\label{fig:fi_im}}
+	\end{subfigure}
+	\hspace{3mm}
+	\begin{subfigure}[b]{\mywidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/fieldLearning/fi_im_field.png}
+		\caption{\label{fig:fi_im_f}}
+	\end{subfigure}\\
+	
+	\begin{subfigure}[b]{\mywidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/fieldLearning/fi_field.png}
+		\caption{\label{fig:fi_f}}
+	\end{subfigure}
+	\hspace{3mm}
+	\begin{subfigure}[b]{\mywidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/fieldLearning/fi_result.png}
+		\caption{\label{fig:fi_r}}
+	\end{subfigure}
+		
+	\caption{\subref{fig:fi_im} and \subref{fig:fi_f} shows an 2D slice of input data and the ground truth field. They are overlaid and showed in \subref{fig:fi_im_f}. \subref{fig:fi_r} shows the predicted field.}
+	\label{fig:learnedField}
+\end{figure}
 
 \section{Decoding Skeletons from Vector Field}
 To obtain the instance skeletons back from such an encoding, simple postprocessing steps can be used. First observation about the predicted field is: in the vicinity of skeleton voxels they point away from each other, while at non skeleton voxels they point almost in the same direction. This property can be used to identify skeleton voxels. Divergence at skeleton points would be high, where as for all other location it would be low. And thus thresholding the divergence would allow to create a skeleton mask. Finally, for separating instance skeletons, connected components analysis can be performed.
