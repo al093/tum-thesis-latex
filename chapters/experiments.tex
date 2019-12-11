@@ -18,6 +18,22 @@ In current proposed method skeletons for each segment are identified separately.
 To assess if predicted skeletons are over-split, a connectivity score is also calculated similar to \cite{Liang2019}.
 
 
+\begin{figure}[htpb]
+	\centering
+	\begin{subfigure}[b]{0.3\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/splitNMatch2/train_good.png}
+		\caption{\label{fig:merged_train}}
+	\end{subfigure}
+	\hspace{3mm}
+	\begin{subfigure}[b]{0.4\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/splitNMatch2/val_good_bad.png}
+		\caption{\label{fig:merged_val}}
+	\end{subfigure}	
+	\caption{Mathching results from \subref{fig:merged_train} train and \subref{fig:merged_val} test sets of SNEMI. While \subref{fig:merged_train} shows all the skeleton parts for a segment were matched properly, \subref{fig:merged_val} shows some correctly matched and some un-matched parts}  
+	\label{fig:matchedSNEMI}
+\end{figure}
 
 \begin{table*}[!ht]                                                                                          
 	\centering
@@ -29,8 +45,8 @@ To assess if predicted skeletons are over-split, a connectivity score is also ca
 		&  & P & R & F & C & P & R & F & C & P & R & F & C \\                                                           
 		\hline                                                                                                  
 		\hline                                                                                                  
-				& Train & 0.64 & 0.89 & 0.74 & 0.93 & 0.66 & 0.96 & 0.78 & 0.74 &  &  &  &\\                           
-		SNEMI 	& Val 	& 0.64 & 0.64 & 0.64 & 0.88 & 0.63 & 0.82 & 0.71 & 0.73 &  &  &  & \\           
+				& Train & 0.64 & 0.89 & 0.74 & 0.93 & 0.66 & 0.96 & 0.78 & 0.74 & 0.66 & 0.95 & 0.78  & 0.79\\                           
+		SNEMI 	& Val 	& 0.64 & 0.64 & 0.64 & 0.88 & 0.63 & 0.82 & 0.71 & 0.73 & 0.62 & 0.76 & 0.68 & 0.77 \\           
 				& Test 	&  &  &  &  &  &  &  &  &  &  &  & \\
 		\hline		 
 				& Train &  &  &  &  &  &  &  &  &  &  &  & \\                           
@@ -39,6 +55,6 @@ To assess if predicted skeletons are over-split, a connectivity score is also ca
 		\hline                                                                                                     
 	\end{tabular}
 	\end{adjustbox}                                                
-	\caption{Skeleton prediction scores after every step. P, R, F, C stands for Precision, Recall, F-Score and Connectivity Scores. }
+	\caption{Skeleton prediction scores after every step. P, R, F, C stands for Precision, Recall, F-Score and Connectivity Scores.}
 	\label{tab:dissected_scores}                                                                   
 \end{table*}
