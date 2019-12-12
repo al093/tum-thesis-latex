@@ -176,6 +176,21 @@ Though a L2 or L1 loss between target field $\mathbf{T}$ and predicted field $\m
 	\label{fig:learnedField}
 \end{figure}
 
+\section{Data Augmentation}
+Augmenting EM data while training, and also during test, has been very effective in improving affinity prediction for segmentation \cite{Zeng2017}, \cite{Kisuk2017}.
+Borrowing the training set augmentations from \cite{Kisuk2017}, \cite{ELEKTRONN}, the following augmentations are applied, few being very specific to EM dataset quirks.
+\begin{itemize}
+	\item \textbf{Rotations} of $90^{\circ}$ degree and also incremental along Z axis.
+	\item \textbf{Flips} in $x$, $y$ and $z$ dimensions.
+	\item \textbf{Rescaling} images, skeleton and subsequently the field, which was done prior to training.
+	\item \textbf{Gaussian blur} of a random set of $2D$ slices in input volume. This mimics the actual scenario when only a few slices are out-of-focus and intermittently spread in $3D$.
+	\item \textbf{Elastic deformation} of EM images. A random perturbing field is defined in such a way that the EM images are only slightly deformed with a max of 6 pixels, which would not significantly move skeletons. Hence, this can be done on-the-fly during training. This augmentation can force the network to look for 3D shape features rather than focusing entirely on boundaries.
+	\item Random \textbf{brightness}, \textbf{contrast} adjustments and \textbf{gamma-correction}.
+	\item \textbf{Missing parts}, where a random part of the $2D$ slice is replaced with a flat grayscale value. This mimics artifacts in $2D$ slices due to physical folding, knife marks etc.
+	\item \textbf{Missing section}, where few $2D$ slices are removed from the input stack. This mimics the case when few slices are lost and not imaged due to other issues. This causes a discernible discontinuity along $Z$ axis.
+	\item \textbf{Misalignment}, where a few randomly chosen slices are displaced laterally by few pixels. Which can occur in a real scenario when alignment is not perfect due to image artifacts. 
+\end{itemize}
+  
 \section{Decoding Skeletons from Vector Field}
 To obtain the instance skeletons back from such an encoding, simple postprocessing steps can be used. First observation about the predicted field is: in the vicinity of skeleton voxels they point away from each other, while at non skeleton voxels they point almost in the same direction. This property can be used to identify skeleton voxels. Divergence at skeleton points would be high, where as for all other location it would be low. And thus thresholding the divergence would allow to create a skeleton mask. Finally, for separating instance skeletons, connected components analysis can be performed.
 
