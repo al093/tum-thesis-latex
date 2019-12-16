@@ -3,18 +3,26 @@
 
 \chapter{Method}\label{chapter:method}
 
-A novel method for instance skeletonization of neuronal structures in EM images is proposed. The method is motivated by existing learning based skeletonization method for natural images \cite{Wang2019}, but differs in two distinct ways. First, it separates skeletons for each individual segment - we describe it as instance skeletonization. Second, its is applied on 3D EM images instead of 2D images, which, to the best of our knowledge, has not been explored yet. 
- 
-\section{Encoding Skeletons in a Vector Field}
-Previous skeletonization methods \cite{Shen2016}, \cite{Shen2017}, \cite{Ke2017}, \cite{Wang2019}, \cite{Xu2019} do not separate skeletons of multiple objects. Their prediction is a binary mask marking skeleton points of all salient objects as 'True'. But, in EM images, it is important to separate skeletons of one object instance from another. 
-But, it is not straight forward to construct a single Deep Net which can directly demarcate skeletons of object instance. Hence, a encoding must be devised which allows formulating a feasible loss metric and also simple intuitive postprocessing step for decoding skeleton instances. 
+A novel method for instance skeletonization of neuronal structures in EM images is proposed. The method is motivated by existing learning based skeletonization method for natural images \cite{Wang2019}, but differs in following ways: 
+\begin{itemize}
+	\item It separates skeletons for each individual segment - called as instance skeletonization.
+	\item It is applied on 3D EM images instead of 2D images, which to the best of our knowledge, has not been explored yet in previous works.
+	\item After initial prediction, a splitting and matching step is devised to remove false merges and false splits, based on skeleton topology.
+\end{itemize}
 
-\cite{Wang2019} proposes 'Deep Flux' which encodes skeletons of objects in 2D images using a $\mathbb{R}^2$ vector field. It defines a 2D context region around skeleton, and all $\mathbb{R}^2$ vectors in that context region point to the nearest skeleton pixel. This provides a encoding to represent skeletons, and the objective of a Deep Net model would be to predict this field.
+Previous skeletonization methods \cite{Shen2016}, \cite{Shen2017}, \cite{Ke2017}, \cite{Wang2019}, \cite{Xu2019} do not separate skeletons of multiple objects. Their prediction is a binary mask marking skeleton points of salient objects as 'True'. For EM images it is important to separate skeletons of one object instance from another. 
+It is not straight forward to construct a single Deep Net which can directly demarcate skeletons of object instance. Hence, a encoding must be devised which allows formulating a feasible loss metric and also simple intuitive postprocessing step for decoding skeleton instances. 
 
-The proposed method is also inspired from this encoding, albeit for 3D skeletons and some other tweaks.
+To achieve this, proposed method encodes skeletons in a $\mathbb{R}^3$ vector field, almost similar to 'Deep Flux' \cite{Wang2019}, which encodes skeletons of objects in 2D images using a $\mathbb{R}^2$ vector field called 'flux'. It also defines a 2D context region around skeleton, and all $\mathbb{R}^2$ flux vectors in that context region point to the nearest skeleton pixel, all remaining pixels have zero 'flux'. The proposed method also utilizes the context region albeit in 3D, shown in \autoref{fig:context_field_directions}.
 
-Given, ground truth skeletons, a context region is defined for each skeleton, which are the set of points inside a $3D$ ball of $r$ radius.
-Let $\Omega \subset \mathbb{Z^3}$  be the 3D image domain consisting of points $\mathbf{p}: (x, y, z)$ and ${\Omega}_s \subset \Omega$ be the set of skeletons points manually labeled. The context set, ${\Omega}_c$ of the skeletons can be defined as
+Skeletons can be decoded from flux by finding 'sinks' of field, as all vectors of the field near a skeleton voxel will point towards it. While, \cite{Wang2019} uses a heuristic based algorithm for decoding, proposed method employs established methods - divergence and connected components - to extract skeletons.
+
+A second step of splitting and matching skeletons is also proposed to rectify false merges and splits. This step of error detection and correction is similar in vein to \cite{Brain2019} and \cite{Seung2017}.
+For skeletons, merge and split locations can be identified with junction-points and end-points respectively. All branches are split at junction-points resulting in an over split version, which further can be agglomerated by matching nearby skeletons using their end-points and a learned binary classifier.
+
+\section{Encoding Skeletons in Vector Field}
+Given, ground truth skeletons, a context region is defined for each skeleton which are the set of points inside a $3D$ ball of $r$ radius.
+Let $\Omega \subset \mathbb{Z^3}$  be the 3D image domain consisting of points $\mathbf{p}: (x, y, z)$ and ${\Omega}_s \subset \Omega$ be the set of skeletons points manually labeled. The context set ${\Omega}_c$ of the skeletons can be defined as:
 
 \DeclarePairedDelimiter\norm\lVert\rVert
 
@@ -126,10 +134,6 @@ The advantages for encoding skeletons in such a field are:
 	\item Predicted field can be useful to solve false merges and splits in later post processing steps.
 \end{itemize}
 
-\section{Network Architecture}
-Input to the network is a grayscale image and output is 3 channel vector field.
-The backbone of the network is based on Unet \cite{ronneberger2015}. The encoder and decoder of the Unet has four stages, and a center bottleneck layer, with $8, 16, 24, 32, 40$ filters respectively. Each stage of Unet consists of a 3D convolution layer and a residual block. Each residual block made up of two 3D convolution layers with kernel size 3, a short skip connection and ELU nonlinearity. Since EM images have anisotropic resolution, the first and the last stages of the Unet has only 2D convolutions. This is done keeping in mind that first stage can extract information from the high resolution 2D slices and later stages can combine them to extract higher level of information and be resistant to inter-slice artifacts. For downsampling and upsampling in encoder and decoder, 3D Maxpool and linear upsampling is used with a factor of 2, with an exception in the first the last stage where 2D Maxpooling and linear upsampling is used. The network has a theoretical field of view of \textcolor{red}{378*378*32, calculate this again}.  
-
 \section{Training Objective}
 Though a L2 or L1 loss between target field $\mathbf{T}$ and predicted field $\mathbf{P}$ can be used, but a more stringent loss would be to enforce correct prediction of the directions of the vectors. This forces a sharper prediction and ensures that the network directly learns directions and hence the shape of the neurons. But since, outside the context region of skeletons the vector field has zero magnitude and thus directions are meaningless. So, a weighted combination (\autoref{loss}) of mean square error(\autoref{mse}) and cosine loss (\autoref{cosineLoss}) is used.
 
@@ -176,29 +180,41 @@ Though a L2 or L1 loss between target field $\mathbf{T}$ and predicted field $\m
 	\label{fig:learnedField}
 \end{figure}
 
-\section{Data Augmentation}
-Augmenting EM data while training, and also during test, has been very effective in improving affinity prediction for segmentation \cite{Zeng2017}, \cite{Kisuk2017}.
-Borrowing the training set augmentations from \cite{Kisuk2017}, \cite{ELEKTRONN}, the following augmentations are applied, few being very specific to EM dataset quirks.
-\begin{itemize}
-	\item \textbf{Rotations} of $90^{\circ}$ degree and also incremental along Z axis.
-	\item \textbf{Flips} in $x$, $y$ and $z$ dimensions.
-	\item \textbf{Rescaling} images, skeleton and subsequently the field, which was done prior to training.
-	\item \textbf{Gaussian blur} of a random set of $2D$ slices in input volume. This mimics the actual scenario when only a few slices are out-of-focus and intermittently spread in $3D$.
-	\item \textbf{Elastic deformation} of EM images. A random perturbing field is defined in such a way that the EM images are only slightly deformed with a max of 6 pixels, which would not significantly move skeletons. Hence, this can be done on-the-fly during training. This augmentation can force the network to look for 3D shape features rather than focusing entirely on boundaries.
-	\item Random \textbf{brightness}, \textbf{contrast} adjustments and \textbf{gamma-correction}.
-	\item \textbf{Missing parts}, where a random part of the $2D$ slice is replaced with a flat grayscale value. This mimics artifacts in $2D$ slices due to physical folding, knife marks etc.
-	\item \textbf{Missing section}, where few $2D$ slices are removed from the input stack. This mimics the case when few slices are lost and not imaged due to other issues. This causes a discernible discontinuity along $Z$ axis.
-	\item \textbf{Misalignment}, where a few randomly chosen slices are displaced laterally by few pixels. Which can occur in a real scenario when alignment is not perfect due to image artifacts. 
-\end{itemize}
-  
 \section{Decoding Skeletons from Vector Field}
-To obtain the instance skeletons back from such an encoding, simple postprocessing steps can be used. First observation about the predicted field is: in the vicinity of skeleton voxels they point away from each other, while at non skeleton voxels they point almost in the same direction. This property can be used to identify skeleton voxels. Divergence at skeleton points would be high, where as for all other location it would be low. And thus thresholding the divergence would allow to create a skeleton mask. Finally, for separating instance skeletons, connected components analysis can be performed.
+To obtain the instance skeletons back from such an encoding, simple postprocessing step is devised. First observation about the predicted field is: in the vicinity of skeleton voxels they point away from each other, while at non skeleton voxels they point almost in the same direction. This property can be used to identify skeleton voxels. Divergence at skeleton points would be high, where as for all other locations it would be low. Thus, thresholding the divergence would allow to create a skeleton mask. For separating skeletons of different instances connected components analysis can be performed.
 
-\section{Splitting and Matching}
-After connected component analysis, instance skeletons of most cells can be obtained. But, some skeletons of small and closely located segments are falsely merged, also some skeletons are broken due to irregular shapes and artifacts. To improve such skeletons, another post processing step is devised. 
-All false merges occur as junction points of skeletons. So, Junction points are located and the skeletons are split at those locations by a cutting plane along the two eigen vectors with least eigen value.
-This results in over-split skeletons, but with almost no false merges.
-Finally to merge split skeletons, a classifier is trained to predict if a pair of skeleton requires to be merged. The input to the classifier is a small cropped 3D volume of EM image around the center of the two end points of the skeleton, also combined with it are the cropped skeletons mask in separate channels and the predicted field.
+\section{Splitting and Merging}
+After connected component analysis instance skeletons of most segments can be obtained correctly, but closely located skeletons running over each other could be falsely merged. Also, some skeletons could be broken due to irregular shapes and thresholding artifacts. To rectify such errors another post processing step is devised.
+
+All false merges would occur at junction-points, unless the skeletons of two parallel segments are merged throughout which is unlikely. Hence, junction-points are located by thinning and creating a graph, and skeletons are split by partitioning with a plane which is as orthogonal as possible to the merged skeletons. Such a plane can be defined using Singular Value Decomposition of all skeletons points near the junction. The two left singular vectors with least singular values defines the cutting plane, as shown in \autoref{fig:skelSplit}.
+
+\begin{figure}[htpb]
+	\newcommand{\mywidth}{0.3\textwidth}
+	\centering
+	\begin{subfigure}[b]{\mywidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/splitting/junction.png}
+		\caption{\label{fig:skelSplitA}}
+	\end{subfigure}
+	\hspace{3mm}
+	\begin{subfigure}[b]{\mywidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/splitting/plane.png}
+		\caption{\label{fig:skelSplitB}}
+	\end{subfigure}
+	\hspace{3mm}
+	\begin{subfigure}[b]{\mywidth}
+		\centering
+		\includegraphics[width=\textwidth]{data/images/splitting/split.png}
+		\caption{\label{fig:skelSplitC}}
+	\end{subfigure}
+	\caption{Splitting of skeletons. \subref{fig:skelSplitA} shows two crossing skeletons which are falsely merged at the yellow junction point. \subref{fig:skelSplitB} shows the cutting plane which is thickened and skeletons voxels inside it deleted. \subref{fig:skelSplitC} shows the resulting over-split skeletons.}
+	\label{fig:skelSplit}
+\end{figure}
+
+Splitting would create an over-split skeletons with almost no false merges, hence to improve upon such, a merging step is devised. A classifier is trained to predict if a pair of skeletons can be merged. To find such pairs, all possible permutations of end point pairs, which are within a threshold distance are found. \cite{Brain2019} proposes a similar idea where skeleton directions at end point are also used to decide if segmentations can be merged. End point directions are not used here because pruning possible matches based on directions can also remove correct combinations. Instead, directly delegating the task to a learned classifier is more straightforward and error free, hoping that it should learn direction consistency and other cues using the training examples as shown in \autoref{fig:skelMatchTrainData}. The classifier would have to learn if based on the vector field, EM image and the existing two skeleton masks should they be merged. 
+
+The input to the classifier are: 1) A cropped 3D volume of EM image around the center of the two end points of the skeleons. 2) A cropped mask of skeletons in two separate channels. 3) And the cropped predicted vector field. The output of the classifier is a scalar probability score which is thresholded to get a binary output. \autoref{fig:skelSplitNMatch} shows the workflow of split and merge method discussed above.
 
 \begin{figure}[htpb]
 	\centering
@@ -213,10 +229,9 @@ Finally to merge split skeletons, a classifier is trained to predict if a pair o
 		\includegraphics[width=\textwidth]{data/images/matchingData/negative_2.png}
 		\caption{\label{fig:negativeMatch}}
 	\end{subfigure}
-	\caption{Positive \subref{fig:positiveMatch} and negative \subref{fig:negativeMatch} training samples for training a classifier to merge skeletons. Each red line in \subref{fig:negativeMatch} pairs two skeletons which are not part of the same segment. Green line in \subref{fig:positiveMatch} represent the skeleton parts from same segment which needs to be matched}
+	\caption{Positive \subref{fig:positiveMatch} and negative \subref{fig:negativeMatch} training samples for training a classifier to merge skeletons. Each red line in \subref{fig:negativeMatch} pairs two skeletons which are not part of the same segment. Green line in \subref{fig:positiveMatch} represent the skeleton parts from same segment which needs to be matched. The dark green region is the context region of the skeleton.}
 	\label{fig:skelMatchTrainData}
 \end{figure}
-
 
 \begin{figure}[htpb]
 	\centering
@@ -244,5 +259,24 @@ Finally to merge split skeletons, a classifier is trained to predict if a pair o
 		\caption{\label{fig:splitNMatchD}}
 	\end{subfigure}
 	\caption{Splitting and matching of skeletons. \subref{fig:splitNMatchA} and \subref{fig:splitNMatchB} shows the falsely merged skeletons. \subref{fig:splitNMatchC} shows skeletons after splitting. Notice that the colors of the skeletons have changed. \subref{fig:splitNMatchD} shows the classifier linking the correct skeletons parts together with yellow lines.}
-	\label{skelSplitNMatch}
+	\label{fig:skelSplitNMatch}
 \end{figure}
+
+\section{Network Architecture}
+Input to the network is a grayscale image and output is 3 channel vector field.
+The backbone of the network is based on Unet \cite{ronneberger2015}. The encoder and decoder of the Unet has four stages, and a center bottleneck layer, with $8, 16, 24, 32, 40$ filters respectively. Each stage of Unet consists of a 3D convolution layer and a residual block. Each residual block made up of two 3D convolution layers with kernel size 3, a short skip connection and ELU nonlinearity. Since EM images have anisotropic resolution, the first and the last stages of the Unet has only 2D convolutions. This is done keeping in mind that first stage can extract information from the high resolution 2D slices and later stages can combine them to extract higher level of information and be resistant to inter-slice artifacts. For downsampling and upsampling in encoder and decoder, 3D Maxpool and linear upsampling is used with a factor of 2, with an exception in the first the last stage where 2D Maxpooling and linear upsampling is used. The network has a theoretical field of view of \textcolor{red}{378*378*32, calculate this again}.  
+
+\section{Data Augmentation}
+Augmenting EM data while training, and also during test, has been very effective in improving affinity prediction for segmentation \cite{Zeng2017}, \cite{Kisuk2017}.
+Borrowing the training set augmentations from \cite{Kisuk2017}, \cite{ELEKTRONN}, the following augmentations are applied, few being very specific to EM dataset quirks.
+\begin{itemize}
+	\item \textbf{Rotations} of $90^{\circ}$ degree and also incremental along Z axis.
+	\item \textbf{Flips} in $x$, $y$ and $z$ dimensions.
+	\item \textbf{Rescaling} images, skeleton and subsequently the field, which was done prior to training.
+	\item \textbf{Gaussian blur} of a random set of $2D$ slices in input volume. This mimics the actual scenario when only a few slices are out-of-focus and intermittently spread in $3D$.
+	\item \textbf{Elastic deformation} of EM images. A random perturbing field is defined in such a way that the EM images are only slightly deformed with a max of 6 pixels, which would not significantly move skeletons. Hence, this can be done on-the-fly during training. This augmentation can force the network to look for 3D shape features rather than focusing entirely on boundaries.
+	\item Random \textbf{brightness}, \textbf{contrast} adjustments and \textbf{gamma-correction}.
+	\item \textbf{Missing parts}, where a random part of the $2D$ slice is replaced with a flat grayscale value. This mimics artifacts in $2D$ slices due to physical folding, knife marks etc.
+	\item \textbf{Missing section}, where few $2D$ slices are removed from the input stack. This mimics the case when few slices are lost and not imaged due to other issues. This causes a discernible discontinuity along $Z$ axis.
+	\item \textbf{Misalignment}, where a few randomly chosen slices are displaced laterally by few pixels. Which can occur in a real scenario when alignment is not perfect due to image artifacts. 
+\end{itemize}
