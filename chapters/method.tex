@@ -20,111 +20,132 @@ Skeletons can be decoded from flux by finding 'sinks' of field, as all vectors o
 A second step of splitting and matching skeletons is also proposed to rectify false merges and splits. This step of error detection and correction is similar in vein to \cite{Brain2019} and \cite{Seung2017}.
 For skeletons, merge and split locations can be identified with junction-points and end-points respectively. All branches are split at junction-points resulting in an over split version, which further can be agglomerated by matching nearby skeletons using their end-points and a learned binary classifier.
 
-\section{Encoding Skeletons in Vector Field}
-Given, ground truth skeletons, a context region is defined for each skeleton which are the set of points inside a $3D$ ball of $r$ radius.
-Let $\Omega \subset \mathbb{Z^3}$  be the 3D image domain consisting of points $\mathbf{p}: (x, y, z)$ and ${\Omega}_s \subset \Omega$ be the set of skeletons points manually labeled. The context set ${\Omega}_c$ of the skeletons can be defined as:
+\begin{figure}[t]
+	\centering
+	\includegraphics[width=\textwidth]{figures/model/architecture_0313.pdf}
+	\caption{Overview of our Flux-and-Track method. The flux network takes raw image as input and outputs flux predictions. Next, the predicted flux goes through the instance extraction step to generate over-splitted instance proposals. Finally, we agglomerate the proposals based on predictions from the tracking network, namely the growing direction and \textit{continue}-\textit{stop} state. 
+	}
+	
+	%  \yx{Make the caption more informative such that readers can fully understand the proposed method from this figure?
+	%Weak skeleton regions often lead to false merge and false split errors for instance skeleton prediction.
+	%Previously, (a) deep tracking methods are good at weak skeletons but computationally costly and (b) deep flux methods are efficient but not good at weak skeletons. (c) Our proposed method combines the strength of them.
+	\label{fig:method_overview}
+\end{figure}
+
+\section{Flux Network for 3D Flux Prediction}
+
+\subsection{Flux Definition}
+We formulate skeleton prediction as a regression problem and define a 3D flux field from ground truth skeleton points $\Omega_s$, following the 2D flux representation in \cite{Wang2019}. Centered at each skeleton point, the {\it context region} $\Omega_c$ is defined as the set of points inside 3D balls of radius r centered at the skeleton points:
 
 \DeclarePairedDelimiter\norm\lVert\rVert
 
 \begin{equation}
-{\Omega}_c := \{ \mathbf{p} \in \Omega \vert \min_{\mathbf{q} \in \Omega_s} \norm{\mathbf{p} - \mathbf{q}}_2 < r \} 
+\Omega_c= \{ \mathbf{x} \vert \min_{\mathbf{y} \in \Omega_s} \|\mathbf{x} - \mathbf{y}\|_2 < r \}
 \end{equation}
 
-Further a distance transform $D$ is defined from the skeleton points inside the domain $\Omega$ as
+Further a scalar distance function $D$ is defined from the skeleton points inside the domain $\Omega$ as follows:
 
 \begin{equation}
-\mathbf{D}(\mathbf{p}) := \begin{cases}
-		\min_{\mathbf{q} \in \Omega_s} \norm{\mathbf{p}-\mathbf{q}}_2 & \text{if } \mathbf{p} \in \Omega_c \\
+\mathbf{D}(\mathbf{x}) := \begin{cases}
+		\min_{\mathbf{y} \in \Omega_s} \norm{\mathbf{x}-\mathbf{y}}_2 & \text{if } \mathbf{x} \in \Omega_c \\
 		0  & \text{otherwise}
 		\end{cases} 
 \end{equation}
 
-Finally a $\mathbb{R}^3$ vector field, $\overline{D}$ is obtained by taking discrete gradient of $D$ as follows
+Finally a $\mathbb{R}^3$ vector field, $\overline{D}$ is obtained by taking discrete gradient of $D$:
 
 \begin{equation}
- \overline{\mathbf{D}}(\mathbf{p}) := \begin{cases}
- \nabla \mathbf{D} & \text{if } \mathbf{p} \in \text{int } \Omega_c \\
+ \overline{\mathbf{D}}(\mathbf{x}) := \begin{cases}
+ \nabla \mathbf{D} & \text{if } \mathbf{x} \in \text{int } \Omega_c \\
  0  & \text{otherwise}
  \end{cases} 
 \end{equation}
  
 In essence $\overline{\mathbf{D}}$ is a vector field with non-zero direction vectors defined in the vicinity of skeletons, such that the vectors are pointing away from the skeletons, as shown in \autoref{fig:context_field_directions}.
 
-\begin{figure}[htpb]
-	\newcommand{\mywidth}{0.45\textwidth}
-	\centering
-	\begin{subfigure}[b]{\mywidth}
-		\centering
-		\includegraphics[width=\textwidth]{data/images/contextField/context2D.png}
-		\caption{\label{fig:context}}
-	\end{subfigure}
-	\hspace{3mm}
-	\begin{subfigure}[b]{\mywidth}
-		\centering
-		\includegraphics[width=\textwidth]{data/images/contextField/directions_skel_context.png}
-		\caption{\label{fig:directions_skel_ctx}}
-	\end{subfigure}
-		\caption{\subref{fig:context} shows the context for skeletons in a 2D slice. \subref{fig:directions_skel_ctx} shows the field vectors inside the context. They all point away from the skeletons and also follow the shape of the skeleton smoothly}
-		\label{fig:context_field_directions}
-\end{figure}
-	
-But, such defined direction field is non-smooth if the skeletons are defined on a discrete grid, shown in \autoref{fig:splineInterpolation}. Learning such a non-smooth field is not encouraged as Deep Nets are usually fail to generate such sharp fields. Hence, to create smoother field, skeleton points are interpolated using splines. Hence, $\Omega_s \subset \mathbb{R}^3$.
 
 \begin{figure}[htpb]
-	\newcommand{\mywidth}{0.22\textwidth}
 	\centering
-	\hspace{3mm}
-	\begin{subfigure}[b]{\mywidth}
-		\centering
-		\includegraphics[width=\textwidth]{data/images/interpolation/slice_edited.png}
-		\caption{\label{fig:3dseg_slice}}
+	\captionsetup[subfigure]{justification=centering}
+	\null\hfill
+	\begin{subfigure}[c]{0.34\textwidth}
+		\frame{\includegraphics[width=\textwidth]{figures/contextField/flux_vis_2.png}}
+		\caption{\label{fig::context_field_directions_a}}
 	\end{subfigure}
-	\hspace{3mm}
-	\begin{subfigure}[b]{\mywidth}
-		\centering
-		\includegraphics[width=\textwidth]{data/images/interpolation/linear_skel.png}
-		\caption{\label{fig:skel_linear}}
+	\begin{subfigure}[c]{0.22\textwidth}
+		\frame{\includegraphics[width=\textwidth]{figures/contextField/context.png}}
+		\caption{\label{fig::context_field_directions_b}}
 	\end{subfigure}
-	\hspace{3mm}
-	\begin{subfigure}[b]{\mywidth}
-		\centering
-		\includegraphics[width=\textwidth]{data/images/interpolation/spline_skel.png}
-		\caption{\label{fig:skel_spline}}
-	\end{subfigure}\\
-	\hspace{3mm}
-	\begin{subfigure}[b]{\mywidth}
-		\centering
-		\includegraphics[width=\textwidth]{data/images/interpolation/seg_slice.png}
-		\caption{\label{fig:im_seg}}
+	\begin{subfigure}[c]{0.16\textwidth}
+		\frame{\includegraphics[width=\textwidth]{figures/interpolation/field_ni.png}}
+		\caption{\label{fig::context_field_directions_c}}
 	\end{subfigure}
-	\hspace{3mm}
-	\begin{subfigure}[b]{\mywidth}
-		\centering
-		\includegraphics[width=\textwidth]{data/images/interpolation/dtx_linear.png}
-		\caption{\label{fig:dtx_linear}}
+	\begin{subfigure}[c]{0.16\textwidth}
+		\frame{\includegraphics[width=\textwidth]{figures/interpolation/field_i.png}}
+		\caption{\label{fig::context_field_directions_d}}
 	\end{subfigure}
-	\hspace{3mm}
-	\begin{subfigure}[b]{\mywidth}
-		\centering
-		\includegraphics[width=\textwidth]{data/images/interpolation/dtx_spline.png}
-		\caption{\label{fig:dtx_spline}}
-	\end{subfigure}\\
-	\hspace{\mywidth}
-	\hspace{3mm}
-	\begin{subfigure}[b]{\mywidth}
-		\centering
-		\includegraphics[width=\textwidth]{data/images/interpolation/gradz_linear.png}
-		\caption{\label{fig:grad_linear}}
-	\end{subfigure}
-	\hspace{3mm}
-	\begin{subfigure}[b]{\mywidth}
-		\centering
-		\includegraphics[width=\textwidth]{data/images/interpolation/gradz_spline.png}
-		\caption{\label{fig:grad_spline}}
-	\end{subfigure}
-	\caption{ \subref{fig:skel_linear} and \subref{fig:skel_spline} are resulting skeletons for linearly and spline interpolation methods respectively. \subref{fig:im_seg} is a segment slice in $X-Y$ plane sliced as shown in \subref{fig:3dseg_slice}. \subref{fig:dtx_linear} and \subref{fig:dtx_spline} are the normalized isotropic 3D distance transform from the skeleton for linearly and spline interpolated versions respectively. \subref{fig:grad_linear} and \subref{fig:grad_spline} shows the $z$ component of the gradient of \subref{fig:dtx_linear} and \subref{fig:dtx_spline} respectively. Sharp fields exist in \subref{fig:grad_linear} due to artifacts in the distance transform in \subref{fig:dtx_linear}.}
-	\label{fig:splineInterpolation}
+	\hfill\null
+	\caption{{\bf 3D skeleton context flux.} (a) Blue: the segment, Purple: the skeleton; Green: context region of the skeleton; Red: flux vectors pointing away from the skeleton, (b) Neural Skeletons and their context regions, (c) Color-coded flux field. Roughness due to discrete skeleton points (d) Smooth flux field after interpolating skeletons using splines. (Best viewed in electronic version).}
+	\label{fig:context_field_directions}
 \end{figure}
+	
+But, such defined direction field is non-smooth if the skeletons are defined on a discrete grid, shown in \autoref{fig:context_field_directions} (c). Learning such a non-smooth field is not encouraged as Deep Nets are usually fail to generate such sharp fields. Hence, to create smoother field ( \autoref{fig:context_field_directions} (d)), skeleton points are interpolated using splines and distance transform computed using the interpolated points.
+
+%\begin{figure}[htpb]
+%	\newcommand{\mywidth}{0.22\textwidth}
+%	\centering
+%	\hspace{3mm}
+%	\begin{subfigure}[b]{\mywidth}
+%		\centering
+%		\includegraphics[width=\textwidth]{data/images/interpolation/slice_edited.png}
+%		\caption{\label{fig:3dseg_slice}}
+%	\end{subfigure}
+%	\hspace{3mm}
+%	\begin{subfigure}[b]{\mywidth}
+%		\centering
+%		\includegraphics[width=\textwidth]{data/images/interpolation/linear_skel.png}
+%		\caption{\label{fig:skel_linear}}
+%	\end{subfigure}
+%	\hspace{3mm}
+%	\begin{subfigure}[b]{\mywidth}
+%		\centering
+%		\includegraphics[width=\textwidth]{data/images/interpolation/spline_skel.png}
+%		\caption{\label{fig:skel_spline}}
+%	\end{subfigure}\\
+%	\hspace{3mm}
+%	\begin{subfigure}[b]{\mywidth}
+%		\centering
+%		\includegraphics[width=\textwidth]{data/images/interpolation/seg_slice.png}
+%		\caption{\label{fig:im_seg}}
+%	\end{subfigure}
+%	\hspace{3mm}
+%	\begin{subfigure}[b]{\mywidth}
+%		\centering
+%		\includegraphics[width=\textwidth]{data/images/interpolation/dtx_linear.png}
+%		\caption{\label{fig:dtx_linear}}
+%	\end{subfigure}
+%	\hspace{3mm}
+%	\begin{subfigure}[b]{\mywidth}
+%		\centering
+%		\includegraphics[width=\textwidth]{data/images/interpolation/dtx_spline.png}
+%		\caption{\label{fig:dtx_spline}}
+%	\end{subfigure}\\
+%	\hspace{\mywidth}
+%	\hspace{3mm}
+%	\begin{subfigure}[b]{\mywidth}
+%		\centering
+%		\includegraphics[width=\textwidth]{data/images/interpolation/gradz_linear.png}
+%		\caption{\label{fig:grad_linear}}
+%	\end{subfigure}
+%	\hspace{3mm}
+%	\begin{subfigure}[b]{\mywidth}
+%		\centering
+%		\includegraphics[width=\textwidth]{data/images/interpolation/gradz_spline.png}
+%		\caption{\label{fig:grad_spline}}
+%	\end{subfigure}
+%	\caption{ \subref{fig:skel_linear} and \subref{fig:skel_spline} are resulting skeletons for linearly and spline interpolation methods respectively. \subref{fig:im_seg} is a segment slice in $X-Y$ plane sliced as shown in \subref{fig:3dseg_slice}. \subref{fig:dtx_linear} and \subref{fig:dtx_spline} are the normalized isotropic 3D distance transform from the skeleton for linearly and spline interpolated versions respectively. \subref{fig:grad_linear} and \subref{fig:grad_spline} shows the $z$ component of the gradient of \subref{fig:dtx_linear} and \subref{fig:dtx_spline} respectively. Sharp fields exist in \subref{fig:grad_linear} due to artifacts in the distance transform in \subref{fig:dtx_linear}.}
+%	\label{fig:splineInterpolation}
+%\end{figure}
 
 
 The advantages for encoding skeletons in such a field are:
@@ -134,141 +155,215 @@ The advantages for encoding skeletons in such a field are:
 	\item Predicted field can be useful to solve false merges and splits in later post processing steps.
 \end{itemize}
 
-\section{Training Objective}
-Though a L2 or L1 loss between target field $\mathbf{T}$ and predicted field $\mathbf{P}$ can be used, but a more stringent loss would be to enforce correct prediction of the directions of the vectors. This forces a sharper prediction and ensures that the network directly learns directions and hence the shape of the neurons. But since, outside the context region of skeletons the vector field has zero magnitude and thus directions are meaningless. So, a weighted combination (\autoref{loss}) of mean square error(\autoref{mse}) and cosine loss (\autoref{cosineLoss}) is used.
 
-\begin{equation}\label{cosineLoss}
-\mathcal{L}_{cos}(\mathbf{P}, \mathbf{T}) := \sum_{\mathbf{q} \in \Omega} \mathbf{W}(\mathbf{q})\left( 1 - \frac{\mathbf{P}(\mathbf{q}).\mathbf{T}(\mathbf{q})}{\max(\norm{\mathbf{P}(\mathbf{q})}_2.\norm{\mathbf{T}(\mathbf{q})}_2,\,\epsilon)} \right)
-\end{equation}
+\subsection{Network Design}
+Flux field representation is non-local and highly dependent on underlying 3D shapes. Based on these observations, we use a fully convolutional 3D U-net to predict the 3D flux field from 3D images to enable versatile representations from the training objects. 
 
-\begin{equation} \label{mse}
-\mathcal{L}_{mse}(\mathbf{P}, \mathbf{T}) := \sum_{\mathbf{q} \in \Omega} \mathbf{W}(\mathbf{q}) \norm{\mathbf{P}(\mathbf{q}) - \mathbf{T}(\mathbf{q})}_2^2
-\end{equation}
-
-\begin{equation} \label{loss}
-\mathcal{L} := \alpha\mathcal{L}_{cos} + (1-\alpha)\mathcal{L}_{mse}
-\end{equation}
-
-\begin{figure}[htpb]
-	\newcommand{\mywidth}{0.3\textwidth}
+\begin{figure}[t]
+	\newcommand{\mywidth}{0.24\textwidth}
 	\centering
 	\begin{subfigure}[b]{\mywidth}
 		\centering
 		\includegraphics[width=\textwidth]{data/images/fieldLearning/fi_image.png}
 		\caption{\label{fig:fi_im}}
 	\end{subfigure}
-	\hspace{3mm}
 	\begin{subfigure}[b]{\mywidth}
 		\centering
 		\includegraphics[width=\textwidth]{data/images/fieldLearning/fi_im_field.png}
 		\caption{\label{fig:fi_im_f}}
-	\end{subfigure}\\
-	
+	\end{subfigure}
 	\begin{subfigure}[b]{\mywidth}
 		\centering
 		\includegraphics[width=\textwidth]{data/images/fieldLearning/fi_field.png}
 		\caption{\label{fig:fi_f}}
 	\end{subfigure}
-	\hspace{3mm}
 	\begin{subfigure}[b]{\mywidth}
 		\centering
 		\includegraphics[width=\textwidth]{data/images/fieldLearning/fi_result.png}
 		\caption{\label{fig:fi_r}}
 	\end{subfigure}
-		
+	
 	\caption{\subref{fig:fi_im} and \subref{fig:fi_f} shows an 2D slice of input data and the ground truth field. They are overlayed in \subref{fig:fi_im_f}. \subref{fig:fi_r} shows the predicted field.}
 	\label{fig:learnedField}
 \end{figure}
 
-\section{Decoding Skeletons from Vector Field}
-To obtain the instance skeletons back from such an encoding, simple postprocessing step is devised. First observation about the predicted field is: in the vicinity of skeleton voxels they point away from each other, while at non skeleton voxels they point almost in the same direction. This property can be used to identify skeleton voxels. Divergence at skeleton points would be high, where as for all other locations it would be low. Thus, thresholding the divergence would allow to create a skeleton mask. For separating skeletons of different instances connected components analysis can be performed.
+\subsection{Training Objective}
+Though a L2 or L1 loss between target field $\mathbf{T}$ and predicted field $\mathbf{P}$ can be used, but a more stringent loss would be to enforce correct prediction of the directions of the vectors. This forces a sharper prediction and ensures that the network directly learns directions and hence the shape of the neurons. But since outside skeleton context region the vector field has zero magnitude and thus directions are meaningless. So, a weighted combination (\autoref{eqn:fluxLoss}) of mean square error(\autoref{eqn:mse}) and cosine loss (\autoref{eqn:cosineLoss}) is used.
 
-\section{Splitting and Merging}
-After connected component analysis instance skeletons of most segments can be obtained correctly, but closely located skeletons running over each other could be falsely merged. Also, some skeletons could be broken due to irregular shapes and thresholding artifacts. To rectify such errors another post processing step is devised.
+\begin{equation}\label{eqn:cosineLoss}
+\mathcal{L}_{cos}(\mathbf{P}, \mathbf{T}) := \sum_{\mathbf{x} \in \Omega} \mathbf{W}(\mathbf{x})\left( 1 - \frac{\mathbf{P}(\mathbf{x}).\mathbf{T}(\mathbf{x})}{\max(\norm{\mathbf{P}(\mathbf{x})}_2.\norm{\mathbf{T}(\mathbf{x})}_2,\,\epsilon)} \right)
+\end{equation}
 
-All false merges would occur at junction-points, unless the skeletons of two parallel segments are merged throughout which is unlikely. Hence, junction-points are located by thinning and creating a graph, and skeletons are split by partitioning with a plane which is as orthogonal as possible to the merged skeletons. Such a plane can be defined using Singular Value Decomposition of all skeletons points near the junction. The two left singular vectors with least singular values defines the cutting plane, as shown in \autoref{fig:skelSplit}.
+\begin{equation} \label{eqn:mse}
+\mathcal{L}_{mse}(\mathbf{P}, \mathbf{T}) := \sum_{\mathbf{x} \in \Omega} \mathbf{W}(\mathbf{x}) \norm{ \norm{\mathbf{P}(\mathbf{x})}_{2} - \norm{\mathbf{T}(\mathbf{x})}_{2}}_2^2
+\end{equation}
 
-\begin{figure}[htpb]
-	\newcommand{\mywidth}{0.3\textwidth}
+\begin{equation} \label{eqn:fluxLoss}
+\mathcal{L}_{flux} := \alpha\mathcal{L}_{cos} + (1-\alpha)\mathcal{L}_{mse}
+\end{equation}
+
+\section{Instance Extraction for Over-split Skeletons}
+To obtain the instance skeletons back from such an encoding, a simple postprocessing step is devised. First observation about the predicted field is: in the vicinity of skeleton voxels they point away from each other, while at non skeleton voxels they point almost in the same direction. This property can be used to identify skeleton voxels. Divergence at skeleton points would be high, where as for all other locations it would be low. Thus, thresholding the divergence would allow to create a skeleton mask. For separating skeletons of different instances connected components analysis can be performed.
+
+\subsection{Topological Skeleton Graph}
+We thin the predicted skeletons to a single voxel width and create an undirected graph, shown in \autoref{fig:method_proposal} b. Based on the degree of incident edges, we can identify the vertices $V$ into junctions $J := \{n \in V : \text{degree}(n) > 2\}$ and endpoints $E := \{n \in V : \text{degree}(n) = 1\}$.
+
+\subsection{Generating Over-split Skeletons}
+While connected component analysis separates skeleton instances of most segments, but closely located skeletons crossing each other could be falsely merged. This would create junctions unless skeletons of two parallel segments are merged throughout which is unlikely. So we utilize the topological skeleton graph to split skeletons at junctions $J$ (Fig.~\ref{fig:method_proposal}b-c). Predicted skeletons are split by partitioning with a plane as orthogonal as possible to the merged skeletons. Such a plane can be defined using Singular Value Decomposition of all skeletons points near the junction. 
+This process creates over-split skeletons (\autoref{fig:method_proposal}c) which can be agglomerated using another post-processing step.
+
+\begin{figure}[t]
+	\newcommand{\hwidth}{0.32\textwidth}
+	\captionsetup[subfigure]{aboveskip=1pt,belowskip=1pt}
 	\centering
-	\begin{subfigure}[b]{\mywidth}
-		\centering
-		\includegraphics[width=\textwidth]{data/images/splitting/junction.png}
-		\caption{\label{fig:skelSplitA}}
+	\begin{subfigure}[b]{\hwidth}
+		\frame{\includegraphics[width=\textwidth]{figures/splitNMerge2/sm_initial.png}}
+		\caption{\label{fig:method_proposal_a}}
 	\end{subfigure}
-	\hspace{3mm}
-	\begin{subfigure}[b]{\mywidth}
-		\centering
-		\includegraphics[width=\textwidth]{data/images/splitting/plane.png}
-		\caption{\label{fig:skelSplitB}}
+	\begin{subfigure}[b]{\hwidth}
+		\frame{\includegraphics[width=\textwidth]{figures/splitNMerge2/sm_initial_topology.png}}
+		\caption{\label{fig:method_proposal_b}}
 	\end{subfigure}
-	\hspace{3mm}
-	\begin{subfigure}[b]{\mywidth}
-		\centering
-		\includegraphics[width=\textwidth]{data/images/splitting/split.png}
-		\caption{\label{fig:skelSplitC}}
+	\begin{subfigure}[b]{\hwidth}
+		\frame{\includegraphics[width=\textwidth]{figures/splitNMerge2/sm_split_topo_ends.png}}
+		\caption{\label{fig:method_proposal_c}}
 	\end{subfigure}
-	\caption{Splitting of skeletons. \subref{fig:skelSplitA} shows two crossing skeletons which are falsely merged at the yellow junction point. \subref{fig:skelSplitB} shows the cutting plane which is thickened and skeletons voxels inside it deleted. \subref{fig:skelSplitC} shows the resulting over-split skeletons.}
-	\label{fig:skelSplit}
+	\caption{{\bf Over-split skeletons.} (a) Thick and falsely merged predicted skeletons (b) Topological graph constructed by thinning and identified junction point (c) Result of splitting skeletons at junction point}
+	\label{fig:method_proposal}
+	\vspace{-0.1in}
 \end{figure}
 
-Splitting would create an over-split skeletons with almost no false merges, hence to improve upon such, a merging step is devised. A classifier is trained to predict if a pair of skeletons can be merged. To find such pairs, all possible permutations of end point pairs, which are within a threshold distance are found. \cite{Brain2019} proposes a similar idea where skeleton directions at end point are also used to decide if segmentations can be merged. End point directions are not used here because pruning possible matches based on directions can also remove correct combinations. Instead, directly delegating the task to a learned classifier is more straightforward and error free, hoping that it should learn direction consistency and other cues using the training examples as shown in \autoref{fig:skelMatchTrainData}. The classifier would have to learn if based on the vector field, EM image and the existing two skeleton masks should they be merged. 
+%\begin{figure}[htpb]
+%	\newcommand{\mywidth}{0.3\textwidth}
+%	\centering
+%	\begin{subfigure}[b]{\mywidth}
+%		\centering
+%		\includegraphics[width=\textwidth]{data/images/splitting/junction.png}
+%		\caption{\label{fig:skelSplitA}}
+%	\end{subfigure}
+%	\hspace{3mm}
+%	\begin{subfigure}[b]{\mywidth}
+%		\centering
+%		\includegraphics[width=\textwidth]{data/images/splitting/plane.png}
+%		\caption{\label{fig:skelSplitB}}
+%	\end{subfigure}
+%	\hspace{3mm}
+%	\begin{subfigure}[b]{\mywidth}
+%		\centering
+%		\includegraphics[width=\textwidth]{data/images/splitting/split.png}
+%		\caption{\label{fig:skelSplitC}}
+%	\end{subfigure}
+%	\caption{Splitting of skeletons. \subref{fig:skelSplitA} shows two crossing skeletons which are falsely merged at the yellow junction point. \subref{fig:skelSplitB} shows the cutting plane which is thickened and skeletons voxels inside it deleted. \subref{fig:skelSplitC} shows the resulting over-split skeletons.}
+%	\label{fig:skelSplit}
+%\end{figure}
 
-The input to the classifier are: 1) A cropped 3D volume of EM image around the center of the two end points of the skeleons. 2) A cropped mask of skeletons in two separate channels. 3) And the cropped predicted vector field. The output of the classifier is a scalar probability score which is thresholded to get a binary output. \autoref{fig:skelSplitNMatch} shows the workflow of split and merge method discussed above.
+%Splitting would create an over-split skeletons with almost no false merges, hence to improve upon such, a merging step is devised. A classifier is trained to predict if a pair of skeletons can be merged. To find such pairs, all possible permutations of end point pairs, which are within a threshold distance are found. \cite{Brain2019} proposes a similar idea where skeleton directions at end point are also used to decide if segmentations can be merged. End point directions are not used here because pruning possible matches based on directions can also remove correct combinations. Instead, directly delegating the task to a learned classifier is more straightforward and error free, hoping that it should learn direction consistency and other cues using the training examples as shown in \autoref{fig:skelMatchTrainData}. The classifier would have to learn if based on the vector field, EM image and the existing two skeleton masks should they be merged. 
+%
+%The input to the classifier are: 1) A cropped 3D volume of EM image around the center of the two end points of the skeleons. 2) A cropped mask of skeletons in two separate channels. 3) And the cropped predicted vector field. The output of the classifier is a scalar probability score which is thresholded to get a binary output. \autoref{fig:skelSplitNMatch} shows the workflow of split and merge method discussed above.
+%
+%\begin{figure}[htpb]
+%	\centering
+%	\begin{subfigure}[b]{0.3\textwidth}
+%		\centering
+%		\includegraphics[width=\textwidth]{data/images/matchingData/positive_2.png}
+%		\caption{\label{fig:positiveMatch}}
+%	\end{subfigure}
+%	\hspace{3mm}
+%	\begin{subfigure}[b]{0.3\textwidth}
+%		\centering
+%		\includegraphics[width=\textwidth]{data/images/matchingData/negative_2.png}
+%		\caption{\label{fig:negativeMatch}}
+%	\end{subfigure}
+%	\caption{Positive \subref{fig:positiveMatch} and negative \subref{fig:negativeMatch} training samples for training a classifier to merge skeletons. Each red line in \subref{fig:negativeMatch} pairs two skeletons which are not part of the same segment. Green line in \subref{fig:positiveMatch} represent the skeleton parts from same segment which needs to be matched. The dark green region is the context region of the skeleton.}
+%	\label{fig:skelMatchTrainData}
+%\end{figure}
+%
+%\begin{figure}[htpb]
+%	\centering
+%	\begin{subfigure}[b]{0.24\textwidth}
+%		\centering
+%		\includegraphics[width=\textwidth]{data/images/splitNMatch/skel.png}
+%		\caption{\label{fig:splitNMatchA}}
+%	\end{subfigure}
+%	\hfill
+%	\begin{subfigure}[b]{0.24\textwidth}
+%		\centering
+%		\includegraphics[width=\textwidth]{data/images/splitNMatch/skelNSeg.png}
+%		\caption{\label{fig:splitNMatchB}}
+%	\end{subfigure}
+%	\hfill
+%	\begin{subfigure}[b]{0.24\textwidth}
+%		\centering
+%		\includegraphics[width=\textwidth]{data/images/splitNMatch/split.png}
+%		\caption{\label{fig:splitNMatchC}}
+%	\end{subfigure}
+%	\hfill
+%	\begin{subfigure}[b]{0.24\textwidth}
+%		\centering
+%		\includegraphics[width=\textwidth]{data/images/splitNMatch/matched.png}
+%		\caption{\label{fig:splitNMatchD}}
+%	\end{subfigure}
+%	\caption{Splitting and matching of skeletons. \subref{fig:splitNMatchA} and \subref{fig:splitNMatchB} shows the falsely merged skeletons. \subref{fig:splitNMatchC} shows skeletons after splitting. Notice that the colors of the skeletons have changed. \subref{fig:splitNMatchD} shows the classifier linking the correct skeletons parts together with yellow lines.}
+%	\label{fig:skelSplitNMatch}
+%\end{figure}
 
-\begin{figure}[htpb]
+\section{Tracking Network for Skeleton Agglomeration}
+
+\subsection{Network Design}
+To iteratively grow and merge skeletons from endpoints, we train a Conv-LSTM-FC based recurrent tracking network~\cite{Bastani2018,Homayounfar2019,Liang2019} (see Fig.~\ref{fig:method_overview}). While growing, if the predicted trajectory hits another skeleton, both skeletons are merged together. Every growing step produces two outputs: first, the direction along which the skeleton is to be grown, which is scaled by a constant $\lambda$ to jump to the next position; second, a binary state variable - ${\textit{\{continue-stop\}}}$ controlling if the growing should be terminated at current position.  
+The input to the network is a small ROI from previous layers, initially centered at a skeleton end and moved as the tracking proceeds. The layers consist of the image, skeleton mask and Flux Net features which provides a larger spatial context to the Tracking Network.
+
+\subsection{Loss Functions}
+We use the predicted over-split skeletons from the Flux Network as seeds and ground truth skeleton graph $G_{gt}$ to find a path between pairs of over-split skeleton segments. 
+To minimize the influence from artifacts stemming from all the stages, including annotation, thinning and smoothing (Fig.~\ref{fig:method_skel_agg}a), ground truth skeletons only provides guidance for tracking. Starting from an end point, an oracle can track by only utilizing directions from nearest nodes in the ground truth skeleton graph, shown in Fig.~\ref{fig:method_skel_agg}b. These on-the-fly directions supervise the learning of our Tracking Network.
+
+We want our predictions to follow the gorund truth (GT) path smoothly and loosely without running astray. Therefore, at every step, we dynamically calculate the target direction $\mathbf{u_t}$ using the tangential direction from multiple closest GT nodes and also the normal direction to the GT path.
+The target state $s_t$ is \textit{continue} until the model tracks till the corresponding split skeleton pair or reaches the GT graph end. We define two loss functions for directions and path states as 
+\begin{align}
+\mathcal{L}_{\text{dir}, \Tilde{t}}&= \sum_{t=\Tilde{t}}^{\Tilde{t} + \frac{N}{2}} \left( 1 - \frac{\mathbf{u_t}.\mathbf{v_t}}{\max(\|\mathbf{u_t}\|_2.\|\mathbf{v_t}\|_2,\,\epsilon)} \right), \label{eqn:dirLoss}\\
+\mathcal{L}_{\text{state}, \Tilde{t}}&= \sum_{t=\Tilde{t}}^{\Tilde{t} + \frac{N}{2}} w_t \left( -s_t\log(r_t) - (1-s_t)\log(1-r_t) \right). \label{eqn:stateLoss}\\
+\mathcal{L}_{\text{track}, \Tilde{t}} &= \mathcal{L}_{dir, \Tilde{t}} + \beta\mathcal{L}_{state, \Tilde{t}}\label{eqn:trackingLoss}\\
+w_t&= \begin{cases}
+1  & \text{if } s_t = \text{\textit{continue}} \\
+t & \text{if } s_t = \text{\textit{stop}}
+\end{cases}\label{eqn:trackingWeight}
+\end{align}
+We use cosine similarity (Eqn.~\eqref{eqn:dirLoss}) as a training loss for directions and weighted binary cross entropy (Eqn. \eqref{eqn:stateLoss}) for path states. To avoid the tracking going astray during initial epochs, we perform multiple-phase training with increasing max steps of $N=\{4, 8, 16, 32\}$ and optimize the tracking loss every $\frac{N}{2}$ steps.
+
+\begin{figure}[t]
+	\newcommand{\hwidth}{0.32\textwidth}
+	\captionsetup[subfigure]{aboveskip=1pt,belowskip=1pt}
 	\centering
-	\begin{subfigure}[b]{0.3\textwidth}
-		\centering
-		\includegraphics[width=\textwidth]{data/images/matchingData/positive_2.png}
-		\caption{\label{fig:positiveMatch}}
+	\begin{subfigure}[b]{\hwidth}
+		\frame{\includegraphics[width=\textwidth]{figures/splitNMerge2/sm_split_gt_topo.png}}
+		\caption{\label{fig:method_skel_agg_a}}
 	\end{subfigure}
-	\hspace{3mm}
-	\begin{subfigure}[b]{0.3\textwidth}
-		\centering
-		\includegraphics[width=\textwidth]{data/images/matchingData/negative_2.png}
-		\caption{\label{fig:negativeMatch}}
+	\begin{subfigure}[b]{\hwidth}
+		\frame{\includegraphics[width=\textwidth]{figures/splitNMerge2/sm_seg_gt_oracle_paths_arrow_1.png}}
+		\caption{\label{fig:method_skel_agg_b}}
 	\end{subfigure}
-	\caption{Positive \subref{fig:positiveMatch} and negative \subref{fig:negativeMatch} training samples for training a classifier to merge skeletons. Each red line in \subref{fig:negativeMatch} pairs two skeletons which are not part of the same segment. Green line in \subref{fig:positiveMatch} represent the skeleton parts from same segment which needs to be matched. The dark green region is the context region of the skeleton.}
-	\label{fig:skelMatchTrainData}
+	\begin{subfigure}[b]{\hwidth}
+		\frame{\includegraphics[width=\textwidth]{figures/splitNMerge2/sm_merged_e.png}}
+		\caption{}
+		\label{fig:method_skel_agg_c}
+	\end{subfigure}
+	%\caption{Skeleton agglomeration. (a) shows ground truth skeletons which do not align perfectly with the predicted skeletons (b) shows oracle generated tracking paths obtained by using ground truth skeleton directions as guidance (c) shows predicted paths from Deep Tracking Net connecting correct skeleton pairs.}
+	\caption{Skeleton agglomeration. (a) Misaligned predicted and ground truth skeletons. (b) Oracle generated tracking paths using ground truth skeleton directions as guidance (c) Over-split skeleton pairs correctly agglomerated by Tracking Network.}
+	\label{fig:method_skel_agg}
+	\vspace{-0.1in}
 \end{figure}
 
-\begin{figure}[htpb]
-	\centering
-	\begin{subfigure}[b]{0.24\textwidth}
-		\centering
-		\includegraphics[width=\textwidth]{data/images/splitNMatch/skel.png}
-		\caption{\label{fig:splitNMatchA}}
-	\end{subfigure}
-	\hfill
-	\begin{subfigure}[b]{0.24\textwidth}
-		\centering
-		\includegraphics[width=\textwidth]{data/images/splitNMatch/skelNSeg.png}
-		\caption{\label{fig:splitNMatchB}}
-	\end{subfigure}
-	\hfill
-	\begin{subfigure}[b]{0.24\textwidth}
-		\centering
-		\includegraphics[width=\textwidth]{data/images/splitNMatch/split.png}
-		\caption{\label{fig:splitNMatchC}}
-	\end{subfigure}
-	\hfill
-	\begin{subfigure}[b]{0.24\textwidth}
-		\centering
-		\includegraphics[width=\textwidth]{data/images/splitNMatch/matched.png}
-		\caption{\label{fig:splitNMatchD}}
-	\end{subfigure}
-	\caption{Splitting and matching of skeletons. \subref{fig:splitNMatchA} and \subref{fig:splitNMatchB} shows the falsely merged skeletons. \subref{fig:splitNMatchC} shows skeletons after splitting. Notice that the colors of the skeletons have changed. \subref{fig:splitNMatchD} shows the classifier linking the correct skeletons parts together with yellow lines.}
-	\label{fig:skelSplitNMatch}
-\end{figure}
+\section{End-to-End Fine Tuning}
+Initially, we train the flux network and the tracking network separately for the dependency relationship between two networks. We perform final fine-tuning end-to-end by jointly optimizing linear combination of all losses: $\mathcal{L}_{cos}$, $\mathcal{L}_{scale}$, $\mathcal{L}_{dir}$, $\mathcal{L}_{state}$.  
+ \begin{align}
+     \mathcal{L}= \alpha\mathcal{L}_{cos} + \beta\mathcal{L}_{scale} + \gamma\mathcal{L}_{dir, \Tilde{t}} + \phi\mathcal{L}_{state, \Tilde{t}}.\label{eqn:totalLoss}
+     %\mathcal{L}= \mathcal{L}_{\text{flux}} + \gamma\mathcal{L}_{\text{track}, \Tilde{t}}\label{eqn:totalLoss}
+ \end{align}
 
-\section{Network Architecture}
-Input to the network is a grayscale image and output is 3 channel vector field.
-The backbone of the network is based on Unet \cite{ronneberger2015}. The encoder and decoder of the Unet has four stages, and a center bottleneck layer, with $8, 16, 24, 32, 40$ filters respectively. Each stage of Unet consists of a 3D convolution layer and a residual block. Each residual block made up of two 3D convolution layers with kernel size 3, a short skip connection and ELU nonlinearity. Since EM images have anisotropic resolution, the first and the last stages of the Unet has only 2D convolutions. This is done keeping in mind that first stage can extract information from the high resolution 2D slices and later stages can combine them to extract higher level of information and be resistant to inter-slice artifacts. For downsampling and upsampling in encoder and decoder, 3D Maxpool and linear upsampling is used with a factor of 2, with an exception in the first the last stage where 2D Maxpooling and linear upsampling is used. The network has a theoretical field of view of \textcolor{red}{378*378*32, calculate this again}.  
 
 \section{Data Augmentation}
-Augmenting EM data while training, and also during test, has been very effective in improving affinity prediction for segmentation \cite{Zeng2017}, \cite{Kisuk2017}.
-Borrowing the training set augmentations from \cite{Kisuk2017}, \cite{ELEKTRONN}, the following augmentations are applied, few being very specific to EM dataset quirks.
+Augmenting EM data while training has been very effective in improving affinity prediction for segmentation \cite{Zeng2017}, \cite{Kisuk2017}.
+Borrowing the training set augmentations from \cite{Kisuk2017}, \cite{ELEKTRONN}, the following augmentations were applied for Flux Network.
 \begin{itemize}
 	\item \textbf{Rotations} of $90^{\circ}$ degree and also incremental along Z axis.
 	\item \textbf{Flips} in $x$, $y$ and $z$ dimensions.
@@ -280,3 +375,5 @@ Borrowing the training set augmentations from \cite{Kisuk2017}, \cite{ELEKTRONN}
 	\item \textbf{Missing section}, where few $2D$ slices are removed from the input stack. This mimics the case when few slices are lost and not imaged due to other issues. This causes a discernible discontinuity along $Z$ axis.
 	\item \textbf{Misalignment}, where a few randomly chosen slices are displaced laterally by few pixels. Which can occur in a real scenario when alignment is not perfect due to image artifacts. 
 \end{itemize}
+
+For Tracking Network only $90^{\circ}$ Rotations, Flip and Transpose augmentation operations were used.
