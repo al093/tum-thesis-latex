@@ -1,17 +1,10 @@
 \chapter{\abstractname}
 
-To understand the internal workings of brain neuroscientists have been trying to reconstruct its 'neural circuitry', also termed as a 'connectome' which illustrates how neurons are connected with each other. 
+3D skeletons are crucial for biomedical image analysis, from neuron tracing to blood vessel centerline prediction. However, due to significant variations in appearance and morphology of objects of interest, there are few frameworks to predict 3D instance skeletons robustly for different imaging domains.
 
-A connectome can be constructed by segmenting neurons in a 3D electron microscopy(EM) image and then by finding their inter-connections. Past decade has seen increasing use of Deep Learning based methods to improve segmentation of such EM images and it has been quite indispensable in improving the state of the art in EM segmentation. 
+In this thesis, we propose an end-to-end trainable method called {\it Flux-and-Track} to tackle this challenge. Our method first extends a flux-based semantic skeleton prediction network for 3D data to obtain semantic skeleton prediction. Then, we use an instance proposal module to generate over-split skeleton of all object instances that are later agglomerated by a recurrent tracking network.
 
-But the neuron tracing problem is a hard problem to solve in itself. This can be attributed to its large volume size, multiple image artifacts, numerous closely intertwined segments of vivid shapes etc. \textcolor{red}{show images illustrating problems}. Hence, the results of most algorithms are either not satisfactory or they are too slow and entail complicated postprocessing steps, limiting their scope to only inside a computer science lab, and far away from being used as a general tool directly by neuroscientists for new images.
-
-This work tries to develop a new idea of building connectomes, bypassing the segmentation step. It builds upon from existing methods and approaches in EM segmentation but also leverages the tools and tricks of Machine Learning methods from natural image domain. 
-
-The first part discusses the relevant works from the Connectomics area, their advantages and pitfalls. Apart from that, it also delves into skeletonization methods used for natural images, which inspires the
-proposed method.
-
-
+We quantitatively evaluate our method on two kinds of benchmark datasets: neural skeletons from electron microscopy and synthetic blood vessels, and qualitatively evaluate on a third brain MRA dataset. We show that our method consistently achieves better results.
 
 
 

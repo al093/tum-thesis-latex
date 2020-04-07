@@ -10,15 +10,26 @@
 % TODO: change thesis information
 \newcommand*{\getUniversity}{Technische Universität München}
 \newcommand*{\getFaculty}{Department of Informatics}
-\newcommand*{\getTitle}{Skeleton Prediction of 3D Neuronal Structures}
-\newcommand*{\getTitleGer}{Skelettprognose von 3D Neuronalen Strukturen}
+\newcommand*{\getTitle}{Skeleton Prediction of 3D Biomedical Structures}
+\newcommand*{\getTitleGer}{Skelettprognose von 3D Biomedizinisch Strukturen}
 \newcommand*{\getAuthor}{Alok Verma}
 \newcommand*{\getDoctype}{Master's Thesis in Biomedical Computing}
 \newcommand*{\getSupervisor}{Prof. Dr. Laura Leal-Taixé}
-\newcommand*{\getAdvisor}{Prof. Dr. Hanspeter Pfister and Dr. Donglai Wei }
-\newcommand*{\getSubmissionDate}{Submission date}
+\newcommand*{\getAdvisor}{Prof. Dr. Hanspeter Pfister and Dr. Donglai Wei}
+\newcommand*{\getSubmissionDate}{April 15, 2020}
 \newcommand*{\getSubmissionLocation}{Munich}
 
+\makeatletter
+\DeclareOldFontCommand{\rm}{\normalfont\rmfamily}{\mathrm}
+\DeclareOldFontCommand{\sf}{\normalfont\sffamily}{\mathsf}
+\DeclareOldFontCommand{\tt}{\normalfont\ttfamily}{\mathtt}
+\DeclareOldFontCommand{\bf}{\normalfont\bfseries}{\mathbf}
+\DeclareOldFontCommand{\it}{\normalfont\itshape}{\mathit}
+\DeclareOldFontCommand{\sl}{\normalfont\slshape}{\@nomath\sl}
+\DeclareOldFontCommand{\sc}{\normalfont\scshape}{\@nomath\sc}
+\makeatother
+\newcommand{\eg}{\textit{e}.\textit{g}.}
+\newcommand{\etall}{\textit{et al.}}
 \begin{document}
 
 % Set page numbering to avoid "destination with the same identifier has been already used" warning for cover page.
@@ -41,6 +52,7 @@
 \input{chapters/introduction}
 \input{chapters/method}
 \input{chapters/experiments}
+\input{chapters/further_work}
 \input{chapters/conclusion}
 
 \appendix

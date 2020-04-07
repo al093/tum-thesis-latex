@@ -4,15 +4,15 @@
 \chapter{Experiments}\label{chapter:experiments}
 
 \section{Datasets}
-We train and test proposed skeletonization method on three datasets. On the quantitative side, we use a synthetic and a read EM dataset. For qualitative comparison we use an MRA dataset of brain vessels.
+We train and test proposed method on three datasets. On the quantitative side, we use a synthetic CT vessel dataset and a real EM dataset. For qualitative comparison we use an MRA dataset of brain vessels.
 
 \begin{itemize}
-	\item \textbf{Synthetic CT Vessel (\cite{Tetteh2018}).} We use synthetic CT vessel dataset for centerline detection task. The synthetic dataset consists of isotropic single-instance volumes of size $600\times304\times325$, 20 volumes for training and 15 for testing are used.
+	\item \textbf{Synthetic CT Vessel (\cite{Tetteh2018}).} We use synthetic CT vessel dataset (\autoref{fig:intro} (b))for centerline detection task. The synthetic dataset consists of isotropic single-instance volumes of size $600\times304\times325$. We use 20 volumes for training and 15 for testing.
 	
-	\item \textbf{SNEMI3D (\cite{SNEMI3D}).} For neuron skeleton extraction, we conduct experiments on SNEMI3D~\cite{SNEMI3D}, a neuron segmentation benchmark for EM images containing packed and complex-shaped neuron instances. We create ground truth skeletons from segmentation by topological thinning~\cite{palagyi2014sequential}. The train volume is of size $100\times1024\times1024$ voxels with $30\times6\times6$ nm resolution. 
-	As the test label is unavailable, we report results on the validation volume from the original paper ~\cite{Kasthuri2015}.
+	\item \textbf{SNEMI3D (\cite{SNEMI3D}).} For neuron skeleton extraction, we conduct experiments on SNEMI3D (\autoref{fig:intro} (a)), a neuron segmentation benchmark for EM images containing packed and complex-shaped neuron instances. We create ground truth skeletons from segmentation by topological thinning~\cite{palagyi2014sequential}. The train volume is of size $100\times1024\times1024$ voxels with $30\times6\times6$ nm resolution. 
+	As the test label is unavailable, we report results on a validation volume from the original paper ~\cite{Kasthuri2015}.
 	
-	\item  \textbf{Brain MRA (\cite{Bullitt2005}).} Brain MRA dataset consisted of 42 volumes of annotated blood vessels of size $128\times448\times448$ and resolution $0.8\times0.5\times0.5$ mm. We use 28 volumes for training and show result on one test volume. We only show qualitative results because the ground truth skeletons were disconnected and therefore ground truth topology graph could not be created. Also we found missing annotation for faintly identifiable vessels. 
+	\item  \textbf{Brain MRA (\cite{Bullitt2005}).} Brain MRA dataset (\autoref{fig:intro} (c)) consists of 42 volumes of annotated blood vessels of size $128\times448\times448$ and resolution $0.8\times0.5\times0.5$ mm. We use 28 volumes for training and show result on one test volume. We only show qualitative results because the ground truth skeletons were disconnected and therefore ground truth topology graph could not be created. Also, we found annotations missing for faintly identifiable vessels. 
 \end{itemize}
 
 \section{Evaluation Metric}
@@ -20,20 +20,19 @@ To evaluate multiple skeleton instances and their connectivity, we choose the {\
 We also provide the {\em pixel-level F1 score} for semantic skeleton prediction as a sanity check.
 
 \section{Methods in Comparison}
- We compare our method with state-of-the-art deep learning based skeletonization methods defined as follows:
+We compare our method with state-of-the-art deep learning based skeletonization methods defined as follows:
  
 \begin{itemize}
-	\item Predict {\em Dilated binary mask}~\cite{cciccek20163d,Tetteh2018}
-	\item Predict {\em Inverse truncated distance transform of skeletons}~\cite{wang2019deep}
-	\item {\em DeepFlux$^{\dagger}$}~\cite{Wang2019} extended from 2D skeleton cases
+	\item Predict {\em dilated binary mask}~\cite{cciccek20163d,Tetteh2018}.
+	\item Predict {\em inverse truncated distance transform of skeletons}~\cite{wang2019deep}.
+	\item {\em DeepFlux$^{\dagger}$}~\cite{Wang2019} extended from 2D skeleton cases.
 	\item {\em Centerline Prediction}~\cite{sironi2015} (only for qualitative comparison on the MRA, results obtained from \cite{Koziski2018}).
 \end{itemize}
 
-We use the same U-net architecture and hyper-parameters for all methods. For each method we find the best thresholding parameter using grid search as shown in \autoref{tab:baseline_params}. We also dilated and eroded the binarized predictions with kernel size of 3 and 4 respectively for all methods as done in the DeepFlux paper \cite{Wang2019}. We skip dilation for our Flux-and-Track method.
+We use the same U-net architecture and hyper-parameters for all methods. For each method we find the best thresholding parameter using grid search as shown in \autoref{tab:baseline_params}. We also dilate and erode the binarized predictions with kernel size of 3 and 4 respectively for all methods as done in the DeepFlux paper \cite{Wang2019}. We skip dilation for our Flux-and-Track method.
 
-\begin{table}[htpb]
+\begin{table}[t]
 	\centering
-	\caption{\label{tab:baseline_params}Table shows the threshold values used to binarize the prediction of different methods. We skip dilation for our Flux-and-Track method.}
 	\begin{tabular}{l|cc}
 		& \multicolumn{2}{c}{Thresholding Value}\\
 		&~SNEMI~&~Synthetic CT~ \\
@@ -45,6 +44,7 @@ We use the same U-net architecture and hyper-parameters for all methods. For eac
 		Flux-and-Track (\textbf{Ours})         & 0.55  & 0.80 \\
 		\hline
 	\end{tabular}
+	\caption{\label{tab:baseline_params}Table shows the threshold values used to binarize the prediction of different methods. We skip dilation for our Flux-and-Track method.}
 \end{table}
 
 \section{Results}
@@ -52,7 +52,6 @@ We use the same U-net architecture and hyper-parameters for all methods. For eac
 \subsection{Quantitative}
 
 \begin{table}[htpb]
-	\caption{\label{tab:exp_em}Comparison on SNEMI and synthetic vessel dataset. DeepFlux$^{\dagger}$: extension of~\cite{Wang2019} to predict 3D skeletons instead of 2D.}
 	% \yx{Duplicate references:~\cite{wang2019deep} and~\cite{YanWang2019}}.
 	\centering
 	\begin{tabular}{lccc|cc}
@@ -67,6 +66,7 @@ We use the same U-net architecture and hyper-parameters for all methods. For eac
 		Flux-and-Track (\textbf{Ours})  & 0.810 & \textbf{0.764} & \textbf{0.733} & - \\
 		\hline
 	\end{tabular}
+	\caption{\label{tab:exp_em}Comparison on SNEMI and synthetic vessel dataset. DeepFlux$^{\dagger}$: extension of~\cite{Wang2019} to predict 3D skeletons instead of 2D.}
 \end{table}
 
 \begin{figure}[t]
@@ -105,8 +105,8 @@ We use the same U-net architecture and hyper-parameters for all methods. For eac
 	\label{fig:final_results}
 \end{figure}
 
-As shown in (Table.~\ref{tab:exp_em}) our method outperforms other approaches for real dataset in {\em instance-level F1} and {\em connectivity} scores signifying that our method produces less instance false splits and merges. Other methods perform better on synthetic dataset because of its single instance and simple shapes. We do not run tracking on synthetic dataset as it has only a single instance connectivity score is also not calculated therefore.
-We show SNEMI3D results in Fig.~\ref{fig:final_results} and as can be noticed all other methods have severe false splits and merges, while our method performs better by learning more robust intermediate representations and utilizing topology information to resolve errors.
+As shown in (\autoref{tab:exp_em}) our method outperforms other approaches for real dataset in {\em instance-level F1} and {\em connectivity} scores signifying that our method produces less instance false splits and merges. Other methods perform better on synthetic dataset because of its single instance and simple shapes. We do not run tracking on synthetic dataset as it has only a single instance, connectivity score is also not calculated therefore.
+We show SNEMI3D qualitative results in \autoref{fig:final_results}. As can be noticed all other methods have severe false splits and merges, while our method performs better by learning more robust intermediate representations and utilizing topology information to resolve errors.
 
 \subsection{Qualitative}
 
@@ -142,7 +142,7 @@ We show SNEMI3D results in Fig.~\ref{fig:final_results} and as can be noticed al
 	\label{fig:mri_qualitative}
 \end{figure}
 
-We also visualized (Fig.~\ref{fig:mri_qualitative}) our results on the Brain MRA dataset\cite{Bullitt2005}, which has 42 volumes of annotated blood vessels of size $128\times448\times448$ and resolution $0.8\times0.5\times0.5$ mm. We use 28 volumes for training and show result on one test volume. We only show qualitative results because the ground truth skeletons were disconnected and also missing for many faint vessels. We compare our method with three other state-of-the-art methods in which \cite{sironi2015} doesn't manage to detect many vessel instances as our method and \cite{cciccek20163d}. Although \cite{cciccek20163d} can also perform effective detection in regions with artifacts, it fails to predict correct topology as shown in Fig.~\ref{fig:mri_qualitative} (d).
+We also visualized (\autoref{fig:mri_qualitative}) our results on the Brain MRA dataset\cite{Bullitt2005}, which has 42 volumes of annotated blood vessels of size $128\times448\times448$ and resolution $0.8\times0.5\times0.5$ mm. We use 28 volumes for training and show result of one test volume. We only show qualitative results because the ground truth skeletons were disconnected and also missing for many faint vessels. We compare our method with three other state-of-the-art methods in which Sironi \etall~\cite{sironi2015} doesn't manage to detect as many vessel instances as ours and a 3D Unet predicting binary output (UNET-3D)~\cite{cciccek20163d}. Although UNET-3D~\cite{cciccek20163d} can also perform effective detection in regions with artifacts, it fails to predict correct topology as shown in \autoref{fig:mri_qualitative} (d).
 
 %\begin{figure}[htpb]
 %	\centering
